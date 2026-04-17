@@ -3,6 +3,16 @@ import { byId, closeModal, openModal, renderApp, toast } from '/public/js/utils.
 
 let cases = []
 let state = []
+const initialSearchQuery = (new URLSearchParams(window.location.search).get('search') || '').trim()
+
+function formatDate(value) {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
 function redraw() {
   byId('case-body').innerHTML = listRows(state)
@@ -13,7 +23,7 @@ function applyFilters() {
   const q = byId('search').value.trim().toLowerCase()
   const type = byId('type-filter').value
   state = cases.filter((c) => {
-    const matchText = `${c.caseNumber} ${c.title} ${c.status} ${c.judge}`.toLowerCase().includes(q)
+    const matchText = `${c.caseNumber} ${c.title} ${c.status} ${c.judge} ${c.petitioner} ${c.respondent}`.toLowerCase().includes(q)
     const matchType = type === 'All' || c.type === type
     return matchText && matchType
   })
@@ -69,9 +79,18 @@ function markup() {
 
       <section class="card full">
         <table class="table">
-          <thead><tr><th>Case ID</th><th>Title</th><th>Type</th><th>Status</th><th>Judge</th></tr></thead>
+          <thead><tr><th>Case ID</th><th>Title</th><th>Type</th><th>Status</th><th>Judge</th><th>Filed On</th></tr></thead>
           <tbody id="case-body"></tbody>
         </table>
+      </section>
+
+      <section class="card full">
+        <h3>Filing Guidance</h3>
+        <ul class="bullet-list">
+          <li>Use complete petitioner and respondent names for searchable records.</li>
+          <li>Assign courtroom and judge if already approved by registry workflow.</li>
+          <li>Include concise case summary to speed hearing preparation.</li>
+        </ul>
       </section>
     </div>
 
@@ -104,6 +123,7 @@ function listRows(items) {
       <td>${c.type}</td>
       <td><span class="badge">${c.status}</span></td>
       <td>${c.judge || '-'}</td>
+      <td>${formatDate(c.createdAt)}</td>
     </tr>
   `)
     .join('')
@@ -119,10 +139,17 @@ async function init() {
   renderApp('/cases', 'Cases', markup())
   byId('search').addEventListener('input', applyFilters)
   byId('type-filter').addEventListener('change', applyFilters)
+  if (initialSearchQuery) {
+    byId('search').value = initialSearchQuery
+  }
   mountModal()
   try {
     await loadCases()
-    redraw()
+    if (initialSearchQuery) {
+      applyFilters()
+    } else {
+      redraw()
+    }
   } catch (error) {
     toast(`Failed to load cases: ${error.message}`)
   }

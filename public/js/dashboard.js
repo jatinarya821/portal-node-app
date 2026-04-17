@@ -5,18 +5,37 @@ function emptyMarkup(message) {
   return `<div class="card full"><p>${message}</p></div>`
 }
 
+function dateLabel(value) {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 function markup(cases, hearings, documents) {
   const today = new Date().toISOString().slice(0, 10)
   const upcoming = hearings.filter((h) => h.date >= today).length
   const latestCases = cases.slice(0, 6)
   const latestHearings = hearings.slice(0, 6)
+  const statusCounts = ['Filed', 'Under Review', 'Hearing Scheduled', 'Adjourned', 'Closed'].map((status) => ({
+    status,
+    count: cases.filter((item) => item.status === status).length,
+  }))
+
+  const attentionCases = cases
+    .filter((item) => item.status === 'Under Review' || item.status === 'Adjourned')
+    .slice(0, 6)
+
+  const completedHearings = hearings.filter((item) => item.status === 'Completed').length
 
   return `
     <div class="grid">
       <section class="card kpi"><h3>Total Cases</h3><h2>${cases.length}</h2><p class="small">Across active categories</p></section>
       <section class="card kpi"><h3>Upcoming Hearings</h3><h2>${upcoming}</h2><p class="small">Including rescheduled hearings</p></section>
       <section class="card kpi"><h3>Documents</h3><h2>${documents.length}</h2><p class="small">Orders, filings, and evidence</p></section>
-      <section class="card kpi"><h3>Open Matters</h3><h2>${cases.filter((c) => c.status !== 'Closed').length}</h2><p class="small">Pending judicial action</p></section>
+      <section class="card kpi"><h3>Open Matters</h3><h2>${cases.filter((c) => c.status !== 'Closed').length}</h2><p class="small">${completedHearings} hearings completed</p></section>
 
       <section class="card panel">
         <h3>Latest Cases</h3>
@@ -34,6 +53,33 @@ function markup(cases, hearings, documents) {
           <thead><tr><th>Case</th><th>Date</th><th>Time</th><th>Courtroom</th></tr></thead>
           <tbody>
             ${latestHearings.map((h) => `<tr><td><a href="/case-detail?id=${h.caseId?._id || h.caseId}">${h.caseId?.caseNumber || '-'}</a></td><td>${h.date}</td><td>${h.time}</td><td>${h.courtroom}</td></tr>`).join('') || '<tr><td colspan="4">No hearings yet</td></tr>'}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card panel">
+        <h3>Case Status Breakdown</h3>
+        <ul class="metric-list">
+          ${statusCounts.map((item) => `<li><b>${item.status}:</b> ${item.count}</li>`).join('')}
+        </ul>
+      </section>
+
+      <section class="card panel">
+        <h3>Daily Operations Brief</h3>
+        <ul class="bullet-list">
+          <li>Verify all next-day hearings have courtroom and bench assignment.</li>
+          <li>Review adjourned matters and update fresh hearing slots.</li>
+          <li>Ensure evidence uploads are linked to correct case records.</li>
+          <li>Close stale filings with missing petitioner or respondent metadata.</li>
+        </ul>
+      </section>
+
+      <section class="card full">
+        <h3>Items Requiring Attention</h3>
+        <table class="table">
+          <thead><tr><th>Case</th><th>Title</th><th>Status</th><th>Filed</th><th>Assigned Judge</th></tr></thead>
+          <tbody>
+            ${attentionCases.map((item) => `<tr><td><a href="/case-detail?id=${item._id}">${item.caseNumber}</a></td><td>${item.title}</td><td><span class="badge">${item.status}</span></td><td>${dateLabel(item.createdAt)}</td><td>${item.judge || '-'}</td></tr>`).join('') || '<tr><td colspan="5">No urgent items right now</td></tr>'}
           </tbody>
         </table>
       </section>

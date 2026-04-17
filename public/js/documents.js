@@ -85,6 +85,15 @@ function markup() {
           <tbody id="doc-body"></tbody>
         </table>
       </section>
+
+      <section class="card full">
+        <h3>Document Handling Notes</h3>
+        <ul class="bullet-list">
+          <li>Upload final files with clear names to improve retrieval during hearings.</li>
+          <li>Use the correct category to keep filing, evidence, and orders separated.</li>
+          <li>Ensure each upload is mapped to the exact case before submission.</li>
+        </ul>
+      </section>
     </div>
 
     <div id="upload-modal" class="modal">

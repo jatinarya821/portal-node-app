@@ -3,13 +3,14 @@ import { byId, renderApp } from '/public/js/utils.js'
 
 let monthCursor = new Date()
 let hearings = []
+let visibleHearings = []
 
 function formatMonth(date) {
   return date.toLocaleString('en-US', { month: 'long', year: 'numeric' })
 }
 
-function tableRows() {
-  return hearings
+function tableRows(items = visibleHearings) {
+  return items
     .slice()
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((h) => `<tr><td><a href="/case-detail?id=${h.caseId?._id || h.caseId}">${h.caseId?.caseNumber || '-'}</a></td><td>${h.date}</td><td>${h.time}</td><td>${h.courtroom}</td><td><span class="badge">${h.status}</span></td></tr>`)
@@ -28,11 +29,24 @@ function calendarGrid(date) {
 
   for (let d = 1; d <= days; d += 1) {
     const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const hits = hearings.filter((h) => h.date === iso)
+    const hits = visibleHearings.filter((h) => h.date === iso)
     boxes.push(`<div class="day"><b>${d}</b>${hits.map((h) => `<div><span class="dot"></span>${h.caseId?.caseNumber || '-'}</div>`).join('')}</div>`)
   }
 
   return boxes.join('')
+}
+
+function applyFilters() {
+  const query = byId('hearing-search').value.trim().toLowerCase()
+  const status = byId('hearing-status-filter').value
+  visibleHearings = hearings.filter((item) => {
+    const textMatch = `${item.caseId?.caseNumber || ''} ${item.courtroom || ''} ${item.status || ''}`.toLowerCase().includes(query)
+    const statusMatch = status === 'All' || item.status === status
+    return textMatch && statusMatch
+  })
+
+  byId('hearing-body').innerHTML = tableRows(visibleHearings)
+  renderCalendar()
 }
 
 function renderCalendar() {
@@ -43,11 +57,21 @@ function renderCalendar() {
 function markup() {
   return `
     <div class="grid">
+      <section class="card full row">
+        <input id="hearing-search" placeholder="Search by case id, courtroom, status" style="min-width:280px;flex:1" />
+        <select id="hearing-status-filter">
+          <option>All</option>
+          <option>Scheduled</option>
+          <option>Completed</option>
+          <option>Adjourned</option>
+        </select>
+      </section>
+
       <section class="card full">
         <h3>Hearing Schedule List</h3>
         <table class="table">
           <thead><tr><th>Case</th><th>Date</th><th>Time</th><th>Courtroom</th><th>Status</th></tr></thead>
-          <tbody id="hearing-body">${tableRows()}</tbody>
+          <tbody id="hearing-body">${tableRows(visibleHearings)}</tbody>
         </table>
       </section>
 
@@ -63,12 +87,23 @@ function markup() {
         <div class="small" style="margin:0.3rem 0 0.7rem">Mon Tue Wed Thu Fri Sat Sun</div>
         <div id="calendar" class="calendar"></div>
       </section>
+
+      <section class="card full">
+        <h3>Registry Checklist</h3>
+        <ul class="bullet-list">
+          <li>Confirm all hearings include courtroom and timestamp before publishing.</li>
+          <li>Update adjourned matters immediately to prevent stale schedules.</li>
+          <li>Cross-verify bench allocation before daily cause list generation.</li>
+        </ul>
+      </section>
     </div>
   `
 }
 
 async function init() {
   renderApp('/hearings', 'Hearings', markup())
+  byId('hearing-search').addEventListener('input', applyFilters)
+  byId('hearing-status-filter').addEventListener('change', applyFilters)
   byId('prev-month').addEventListener('click', () => {
     monthCursor = new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1)
     renderCalendar()
@@ -82,7 +117,8 @@ async function init() {
   try {
     const res = await api.get('/hearings')
     hearings = res.items || []
-    byId('hearing-body').innerHTML = tableRows()
+    visibleHearings = [...hearings]
+    byId('hearing-body').innerHTML = tableRows(visibleHearings)
     renderCalendar()
   } catch (error) {
     byId('calendar').innerHTML = `<p>Failed to load hearings: ${error.message}</p>`
