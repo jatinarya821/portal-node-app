@@ -1,0 +1,133 @@
+import { api } from '/public/js/api.js'
+import { byId, closeModal, openModal, renderApp, toast } from '/public/js/utils.js'
+
+let documents = []
+let state = []
+let allCases = []
+
+function rows(items) {
+  return items.map((d) => `
+    <tr>
+      <td>${d._id.slice(-6).toUpperCase()}</td>
+      <td><a href="/case-detail?id=${d.caseId?._id || d.caseId}">${d.caseId?.caseNumber || '-'}</a></td>
+      <td>${d.name}</td>
+      <td>${d.category}</td>
+      <td>${d.uploadedBy}</td>
+      <td>${d.uploadedOn}</td>
+    </tr>
+  `).join('')
+}
+
+function redraw() {
+  byId('doc-body').innerHTML = rows(state)
+  byId('doc-count').textContent = `${state.length} results`
+}
+
+function applyFilters() {
+  const q = byId('doc-search').value.trim().toLowerCase()
+  const type = byId('doc-filter').value
+  state = documents.filter((d) => {
+    const inText = `${d._id} ${d.caseId?.caseNumber || ''} ${d.name} ${d.category} ${d.uploadedBy}`.toLowerCase().includes(q)
+    const inType = type === 'All' || d.category === type
+    return inText && inType
+  })
+  redraw()
+}
+
+function mountUploadModal() {
+  byId('open-upload').addEventListener('click', () => openModal('upload-modal'))
+  byId('close-upload').addEventListener('click', () => closeModal('upload-modal'))
+  byId('upload-btn').addEventListener('click', async () => {
+    const selectedCaseId = byId('upload-case').value
+    const fileInput = byId('upload-file')
+    const file = fileInput.files[0]
+    if (!selectedCaseId || !file) {
+      toast('Case and file are required')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('caseId', selectedCaseId)
+    formData.append('category', byId('upload-category').value)
+    formData.append('uploadedBy', byId('upload-by').value.trim() || 'Registry User')
+    formData.append('file', file)
+
+    try {
+      await api.upload('/documents', formData)
+      toast('Document uploaded')
+      closeModal('upload-modal')
+      await loadDocuments()
+      applyFilters()
+    } catch (error) {
+      toast(`Failed: ${error.message}`)
+    }
+  })
+}
+
+function markup() {
+  return `
+    <div class="grid">
+      <section class="card full row">
+        <input id="doc-search" placeholder="Search by document, case, category" style="min-width:260px;flex:1" />
+        <select id="doc-filter">
+          <option>All</option>
+          <option>Filing</option>
+          <option>Evidence</option>
+          <option>Order</option>
+        </select>
+        <button id="open-upload">Upload Document</button>
+        <span id="doc-count" class="small"></span>
+      </section>
+
+      <section class="card full">
+        <table class="table">
+          <thead><tr><th>ID</th><th>Case</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th></tr></thead>
+          <tbody id="doc-body"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <div id="upload-modal" class="modal">
+      <div class="modal-box">
+        <h3>Upload Document</h3>
+        <div class="field"><label>Case</label><select id="upload-case"></select></div>
+        <div class="field"><label>Category</label><select id="upload-category"><option>Filing</option><option>Evidence</option><option>Order</option></select></div>
+        <div class="field"><label>Uploaded By</label><input id="upload-by" placeholder="Registry User" /></div>
+        <div class="field"><label>Choose File</label><input id="upload-file" type="file" /></div>
+        <div class="row">
+          <button id="upload-btn">Upload</button>
+          <button id="close-upload" class="secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+async function loadDocuments() {
+  const res = await api.get('/documents')
+  documents = res.items || []
+  state = [...documents]
+}
+
+async function loadCases() {
+  const res = await api.get('/cases')
+  allCases = res.items || []
+  byId('upload-case').innerHTML = allCases
+    .map((c) => `<option value="${c._id}">${c.caseNumber} - ${c.title}</option>`)
+    .join('')
+}
+
+async function init() {
+  renderApp('/documents', 'Documents', markup())
+  byId('doc-search').addEventListener('input', applyFilters)
+  byId('doc-filter').addEventListener('change', applyFilters)
+  mountUploadModal()
+  try {
+    await Promise.all([loadDocuments(), loadCases()])
+    redraw()
+  } catch (error) {
+    toast(`Failed to load documents: ${error.message}`)
+  }
+}
+
+init()
