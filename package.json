@@ -4,6 +4,7 @@
   "description": "Case management hearing portal with Express and static frontend",
   "main": "server.js",
   "scripts": {
+    "dev": "node server.js",
     "start": "node server.js"
   },
   "dependencies": {
