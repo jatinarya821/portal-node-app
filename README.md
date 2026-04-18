@@ -63,6 +63,12 @@ MONGODB_URI=mongodb://127.0.0.1:27017/portal_node_app
 3. Start the server:
 
 ```bash
+npm run dev
+```
+
+For production:
+
+```bash
 npm start
 ```
 

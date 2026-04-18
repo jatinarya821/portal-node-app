@@ -3,6 +3,7 @@ export const Icons = {
   folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>',
   calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>',
   search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  bell: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M10 17a2 2 0 0 0 4 0"/></svg>',
   moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
   sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
 }
@@ -25,6 +26,20 @@ export function shell(currentPath, pageTitle) {
     month: 'short',
     year: 'numeric',
   })
+  const notifications = [
+    {
+      title: 'Hearing rescheduled',
+      detail: 'Case C-2026-014 moved to 11:30 AM in Courtroom 2.',
+    },
+    {
+      title: 'New filing received',
+      detail: 'Document upload completed for case C-2026-021.',
+    },
+    {
+      title: 'Registry reminder',
+      detail: '2 pending cases still require judge assignment.',
+    },
+  ]
 
   return `
     <div class="shell">
@@ -47,6 +62,12 @@ export function shell(currentPath, pageTitle) {
               <span id="theme-label">Dark</span>
             </button>
 
+            <button id="notifications-toggle" class="icon-btn secondary notify-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Open notifications">
+              <span class="notify-icon">${Icons.bell}</span>
+              <span class="notify-text">Alerts</span>
+              <span class="notify-count">${notifications.length}</span>
+            </button>
+
             <button id="profile-toggle" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false">
               <span class="avatar">JA</span>
               <span class="profile-copy">
@@ -63,6 +84,22 @@ export function shell(currentPath, pageTitle) {
           <a href="/hearings" class="${currentPath === '/hearings' ? 'active' : ''}">Hearings</a>
           <a href="/documents" class="${currentPath === '/documents' ? 'active' : ''}">Documents</a>
         </nav>
+
+        <div id="notifications-panel" class="notifications-panel" hidden>
+          <p class="notifications-title">Notifications</p>
+          <ul class="notifications-list">
+            ${notifications
+              .map(
+                (item) => `
+                <li>
+                  <b>${item.title}</b>
+                  <span>${item.detail}</span>
+                </li>
+              `
+              )
+              .join('')}
+          </ul>
+        </div>
 
         <div id="profile-panel" class="profile-panel" hidden>
           <p><b>User:</b> Jatin Arya</p>
@@ -116,8 +153,22 @@ function mountShellControls() {
   const searchInput = document.getElementById('global-search-input')
   const searchForm = document.getElementById('global-search-form')
   const themeToggle = document.getElementById('theme-toggle')
+  const notificationsToggle = document.getElementById('notifications-toggle')
+  const notificationsPanel = document.getElementById('notifications-panel')
   const profileToggle = document.getElementById('profile-toggle')
   const profilePanel = document.getElementById('profile-panel')
+
+  const closeNotificationsPanel = () => {
+    if (!notificationsPanel || !notificationsToggle) return
+    notificationsPanel.hidden = true
+    notificationsToggle.setAttribute('aria-expanded', 'false')
+  }
+
+  const closeProfilePanel = () => {
+    if (!profilePanel || !profileToggle) return
+    profilePanel.hidden = true
+    profileToggle.setAttribute('aria-expanded', 'false')
+  }
 
   const activeQuery = new URLSearchParams(window.location.search).get('search')
   if (searchInput && activeQuery) {
@@ -142,27 +193,52 @@ function mountShellControls() {
     })
   }
 
+  if (notificationsToggle && notificationsPanel) {
+    notificationsToggle.addEventListener('click', () => {
+      const open = notificationsPanel.hidden
+      notificationsPanel.hidden = !open
+      notificationsToggle.setAttribute('aria-expanded', String(open))
+      if (open) {
+        closeProfilePanel()
+      }
+    })
+  }
+
   if (profileToggle && profilePanel) {
     profileToggle.addEventListener('click', () => {
       const open = profilePanel.hidden
       profilePanel.hidden = !open
       profileToggle.setAttribute('aria-expanded', String(open))
+      if (open) {
+        closeNotificationsPanel()
+      }
     })
+  }
 
-    if (window.__portalProfileListener) {
-      document.removeEventListener('click', window.__portalProfileListener)
-    }
+  if (window.__portalHeaderListener) {
+    document.removeEventListener('click', window.__portalHeaderListener)
+  }
+  if (window.__portalProfileListener) {
+    document.removeEventListener('click', window.__portalProfileListener)
+  }
 
-    window.__portalProfileListener = (event) => {
-      const clickedInside = profilePanel.contains(event.target) || profileToggle.contains(event.target)
-      if (!clickedInside) {
-        profilePanel.hidden = true
-        profileToggle.setAttribute('aria-expanded', 'false')
+  window.__portalHeaderListener = (event) => {
+    if (profilePanel && profileToggle) {
+      const clickedProfile = profilePanel.contains(event.target) || profileToggle.contains(event.target)
+      if (!clickedProfile) {
+        closeProfilePanel()
       }
     }
 
-    document.addEventListener('click', window.__portalProfileListener)
+    if (notificationsPanel && notificationsToggle) {
+      const clickedNotifications = notificationsPanel.contains(event.target) || notificationsToggle.contains(event.target)
+      if (!clickedNotifications) {
+        closeNotificationsPanel()
+      }
+    }
   }
+
+  document.addEventListener('click', window.__portalHeaderListener)
 }
 
 export function renderApp(currentPath, title, pageMarkup) {

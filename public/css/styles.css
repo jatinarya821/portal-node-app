@@ -132,6 +132,35 @@ a {
   gap: 0.35rem;
 }
 
+.notify-btn {
+  position: relative;
+}
+
+.notify-icon {
+  display: inline-flex;
+}
+
+.notify-text {
+  font-weight: 600;
+}
+
+.notify-count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.28rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 0.24rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #d04b46, #a42025);
+  border: 1px solid color-mix(in srgb, #6d1010 60%, transparent);
+}
+
 .profile-btn {
   border: 1px solid var(--line);
   background: var(--paper);
@@ -181,6 +210,51 @@ a {
   border-radius: 12px;
   padding: 0.8rem;
   box-shadow: var(--shadow);
+}
+
+.notifications-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: max(2vw, calc((100vw - 1200px) / 2));
+  width: min(340px, 94vw);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.72rem;
+  box-shadow: var(--shadow);
+}
+
+.notifications-title {
+  margin: 0.12rem 0 0.52rem;
+  font-size: 0.94rem;
+}
+
+.notifications-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.notifications-list li {
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  border-radius: 10px;
+  padding: 0.5rem 0.58rem;
+  background: color-mix(in srgb, var(--chip-bg) 50%, var(--paper));
+  display: grid;
+  gap: 0.16rem;
+}
+
+.notifications-list b {
+  font-size: 0.86rem;
+}
+
+.notifications-list span {
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .profile-panel p {
@@ -456,6 +530,7 @@ button.secondary {
   justify-content: center;
   padding: 1rem;
   z-index: 55;
+  overflow-y: auto;
 }
 
 .modal.open {
@@ -469,6 +544,9 @@ button.secondary {
   border-radius: 13px;
   padding: 1rem;
   box-shadow: var(--shadow);
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
 }
 
 .field {
@@ -508,6 +586,10 @@ button.secondary {
   .profile-panel {
     right: 1rem;
   }
+
+  .notifications-panel {
+    right: 1rem;
+  }
 }
 
 @media (max-width: 960px) {
@@ -528,6 +610,10 @@ button.secondary {
 }
 
 @media (max-width: 700px) {
+  .notify-text {
+    display: none;
+  }
+
   .profile-copy {
     display: none;
   }
