@@ -30,7 +30,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api', apiRoutes)
 
 app.get('/', (req, res) => {
-  res.redirect('/dashboard')
+  res.redirect('/login')
+})
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(pagesDir, 'login.html'))
 })
 
 app.get('/dashboard', (req, res) => {

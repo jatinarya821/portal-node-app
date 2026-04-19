@@ -2,8 +2,22 @@ import { api } from '/public/js/api.js'
 import { byId, closeModal, openModal, renderApp, toast } from '/public/js/utils.js'
 
 let cases = []
-let state = []
 const initialSearchQuery = (new URLSearchParams(window.location.search).get('search') || '').trim()
+const filters = {
+  search: initialSearchQuery,
+  type: 'All',
+  page: 1,
+  limit: 10,
+}
+let pagination = {
+  page: 1,
+  limit: 10,
+  total: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+}
+let searchDebounceId = null
 
 function formatDate(value) {
   if (!value) return '-'
@@ -15,18 +29,28 @@ function formatDate(value) {
 }
 
 function redraw() {
-  byId('case-body').innerHTML = listRows(state)
-  byId('count').textContent = `${state.length} results`
+  byId('case-body').innerHTML = listRows(cases)
+
+  const start = pagination.total === 0 ? 0 : ((pagination.page - 1) * pagination.limit) + 1
+  const end = pagination.total === 0 ? 0 : start + cases.length - 1
+  byId('count').textContent = `Showing ${start}-${end} of ${pagination.total}`
+  byId('page-indicator').textContent = `Page ${pagination.page} of ${pagination.totalPages}`
+  byId('page-prev').disabled = !pagination.hasPrevPage
+  byId('page-next').disabled = !pagination.hasNextPage
 }
 
-function applyFilters() {
-  const q = byId('search').value.trim().toLowerCase()
-  const type = byId('type-filter').value
-  state = cases.filter((c) => {
-    const matchText = `${c.caseNumber} ${c.title} ${c.status} ${c.judge} ${c.petitioner} ${c.respondent}`.toLowerCase().includes(q)
-    const matchType = type === 'All' || c.type === type
-    return matchText && matchType
-  })
+function updateFiltersFromInputs() {
+  filters.search = byId('search').value.trim()
+  filters.type = byId('type-filter').value
+}
+
+async function refreshCases({ resetPage = false } = {}) {
+  updateFiltersFromInputs()
+  if (resetPage) {
+    filters.page = 1
+  }
+
+  await loadCases()
   redraw()
 }
 
@@ -54,8 +78,9 @@ function mountModal() {
       await api.post('/cases', payload)
       toast('Case filed successfully')
       closeModal('new-case-modal')
+      filters.page = 1
       await loadCases()
-      applyFilters()
+      redraw()
     } catch (error) {
       toast(`Failed: ${error.message}`)
     }
@@ -82,6 +107,11 @@ function markup() {
           <thead><tr><th>Case ID</th><th>Title</th><th>Type</th><th>Status</th><th>Judge</th><th>Filed On</th></tr></thead>
           <tbody id="case-body"></tbody>
         </table>
+        <div class="row pagination-row">
+          <button id="page-prev" class="secondary" type="button">Previous</button>
+          <span id="page-indicator" class="small">Page 1 of 1</span>
+          <button id="page-next" class="secondary" type="button">Next</button>
+        </div>
       </section>
 
       <section class="card full">
@@ -115,6 +145,10 @@ function markup() {
 }
 
 function listRows(items) {
+  if (!items.length) {
+    return '<tr><td colspan="6">No cases found</td></tr>'
+  }
+
   return items
     .map((c) => `
     <tr>
@@ -130,26 +164,70 @@ function listRows(items) {
 }
 
 async function loadCases() {
-  const res = await api.get('/cases')
+  const params = new URLSearchParams()
+  if (filters.search) params.set('search', filters.search)
+  if (filters.type && filters.type !== 'All') params.set('type', filters.type)
+  params.set('page', String(filters.page))
+  params.set('limit', String(filters.limit))
+
+  const res = await api.get(`/cases?${params.toString()}`)
   cases = res.items || []
-  state = [...cases]
+
+  pagination = {
+    page: res.pagination?.page || filters.page,
+    limit: res.pagination?.limit || filters.limit,
+    total: res.pagination?.total ?? cases.length,
+    totalPages: res.pagination?.totalPages || 1,
+    hasPrevPage: Boolean(res.pagination?.hasPrevPage),
+    hasNextPage: Boolean(res.pagination?.hasNextPage),
+  }
+
+  filters.page = pagination.page
 }
 
 async function init() {
   renderApp('/cases', 'Cases', markup())
-  byId('search').addEventListener('input', applyFilters)
-  byId('type-filter').addEventListener('change', applyFilters)
-  if (initialSearchQuery) {
-    byId('search').value = initialSearchQuery
-  }
+
+  byId('search').value = filters.search
+
+  byId('search').addEventListener('input', () => {
+    if (searchDebounceId) {
+      window.clearTimeout(searchDebounceId)
+    }
+
+    searchDebounceId = window.setTimeout(() => {
+      refreshCases({ resetPage: true }).catch((error) => {
+        toast(`Failed to load cases: ${error.message}`)
+      })
+    }, 260)
+  })
+
+  byId('type-filter').addEventListener('change', () => {
+    refreshCases({ resetPage: true }).catch((error) => {
+      toast(`Failed to load cases: ${error.message}`)
+    })
+  })
+
+  byId('page-prev').addEventListener('click', () => {
+    if (!pagination.hasPrevPage) return
+    filters.page -= 1
+    refreshCases().catch((error) => {
+      toast(`Failed to load cases: ${error.message}`)
+    })
+  })
+
+  byId('page-next').addEventListener('click', () => {
+    if (!pagination.hasNextPage) return
+    filters.page += 1
+    refreshCases().catch((error) => {
+      toast(`Failed to load cases: ${error.message}`)
+    })
+  })
+
   mountModal()
   try {
     await loadCases()
-    if (initialSearchQuery) {
-      applyFilters()
-    } else {
-      redraw()
-    }
+    redraw()
   } catch (error) {
     toast(`Failed to load cases: ${error.message}`)
   }

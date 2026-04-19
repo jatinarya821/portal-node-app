@@ -1,3 +1,5 @@
+import { getCurrentUser, signOut } from '/public/js/auth-client.js'
+
 export const Icons = {
   gavel: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3l7 7-3 3-7-7 3-3zM2 21l6-6"/><path d="M5 18l-2 2"/></svg>',
   folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>',
@@ -20,12 +22,46 @@ function pageDescription(path) {
   return map[path] || 'Unified case management workspace for courts and legal teams.'
 }
 
+function initials(name) {
+  const value = String(name || '').trim()
+  if (!value) return 'GU'
+
+  const pieces = value.split(/\s+/).filter(Boolean)
+  if (pieces.length === 1) {
+    return pieces[0].slice(0, 2).toUpperCase()
+  }
+
+  return `${pieces[0][0]}${pieces[pieces.length - 1][0]}`.toUpperCase()
+}
+
+function formatDateTime(value, fallback) {
+  if (!value) return fallback
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return fallback
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 export function shell(currentPath, pageTitle) {
   const today = new Date().toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   })
+  const currentUser = getCurrentUser() || {
+    fullName: 'Guest User',
+    role: 'Portal User',
+    email: '',
+    lastLogin: null,
+  }
+  const lastLoginLabel = formatDateTime(currentUser.lastLogin, today)
+  const avatarLabel = initials(currentUser.fullName)
   const notifications = [
     {
       title: 'Hearing rescheduled',
@@ -69,10 +105,10 @@ export function shell(currentPath, pageTitle) {
             </button>
 
             <button id="profile-toggle" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false">
-              <span class="avatar">JA</span>
+              <span class="avatar">${avatarLabel}</span>
               <span class="profile-copy">
-                <b>Jatin Arya</b>
-                <small>Court Administrator</small>
+                <b>${currentUser.fullName}</b>
+                <small>${currentUser.role}</small>
               </span>
             </button>
           </div>
@@ -102,9 +138,13 @@ export function shell(currentPath, pageTitle) {
         </div>
 
         <div id="profile-panel" class="profile-panel" hidden>
-          <p><b>User:</b> Jatin Arya</p>
-          <p><b>Role:</b> Court Administrator</p>
-          <p><b>Last Login:</b> ${today}</p>
+          <p><b>User:</b> ${currentUser.fullName}</p>
+          <p><b>Role:</b> ${currentUser.role}</p>
+          <p><b>Email:</b> ${currentUser.email || '-'}</p>
+          <p><b>Last Login:</b> ${lastLoginLabel}</p>
+          <div class="profile-actions">
+            <button id="logout-btn" class="secondary" type="button">Sign out</button>
+          </div>
         </div>
       </header>
 
@@ -157,6 +197,7 @@ function mountShellControls() {
   const notificationsPanel = document.getElementById('notifications-panel')
   const profileToggle = document.getElementById('profile-toggle')
   const profilePanel = document.getElementById('profile-panel')
+  const logoutBtn = document.getElementById('logout-btn')
 
   const closeNotificationsPanel = () => {
     if (!notificationsPanel || !notificationsToggle) return
@@ -212,6 +253,13 @@ function mountShellControls() {
       if (open) {
         closeNotificationsPanel()
       }
+    })
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      signOut()
+      window.location.replace('/login')
     })
   }
 

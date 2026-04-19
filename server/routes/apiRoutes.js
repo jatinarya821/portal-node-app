@@ -21,6 +21,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 const pad3 = (n) => String(n).padStart(3, '0')
+const MAX_CASES_PAGE_LIMIT = 100
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback
+  return parsed
+}
 
 async function generateCaseNumber() {
   const year = new Date().getFullYear()
@@ -36,6 +43,8 @@ async function generateCaseNumber() {
 router.get('/cases', wrap(async (req, res) => {
   const search = (req.query.search || '').trim()
   const type = (req.query.type || 'All').trim()
+  const shouldPaginate = Object.prototype.hasOwnProperty.call(req.query, 'page')
+    || Object.prototype.hasOwnProperty.call(req.query, 'limit')
 
   const query = {}
   if (type !== 'All') query.type = type
@@ -46,6 +55,31 @@ router.get('/cases', wrap(async (req, res) => {
       { status: { $regex: search, $options: 'i' } },
       { judge: { $regex: search, $options: 'i' } },
     ]
+  }
+
+  if (shouldPaginate) {
+    const page = parsePositiveInteger(req.query.page, 1)
+    const limit = Math.min(parsePositiveInteger(req.query.limit, 10), MAX_CASES_PAGE_LIMIT)
+    const total = await Case.countDocuments(query)
+    const totalPages = Math.max(1, Math.ceil(total / limit))
+    const safePage = Math.min(page, totalPages)
+
+    const items = await Case.find(query)
+      .sort({ createdAt: -1 })
+      .skip((safePage - 1) * limit)
+      .limit(limit)
+
+    return res.json({
+      items,
+      pagination: {
+        page: safePage,
+        limit,
+        total,
+        totalPages,
+        hasPrevPage: safePage > 1,
+        hasNextPage: safePage < totalPages,
+      },
+    })
   }
 
   const items = await Case.find(query).sort({ createdAt: -1 })
