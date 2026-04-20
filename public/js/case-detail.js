@@ -118,6 +118,25 @@ async function loadDetail() {
 function bindInteractions() {
   setupTabs('.tab-btn', '.tab-pane')
 
+  const initialTab = (params.get('tab') || '').trim().toLowerCase()
+  if (initialTab) {
+    const targetTab = initialTab === 'documents' || initialTab === 'hearings' || initialTab === 'info'
+      ? initialTab
+      : 'info'
+    const tabBtn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`)
+    if (tabBtn) {
+      tabBtn.click()
+    }
+  }
+
+  if (params.get('openUpload') === '1') {
+    const openDocButton = byId('open-doc-modal')
+    if (openDocButton) {
+      openDocButton.click()
+      toast('Upload a filing document to see this case in Documents')
+    }
+  }
+
   document.addEventListener('click', async (event) => {
   const target = event.target
   if (!(target instanceof HTMLElement)) return

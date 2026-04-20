@@ -13,8 +13,9 @@ const PORT = process.env.PORT || 3000
 const pagesDir = path.join(__dirname, 'pages')
 
 connectDB(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('MongoDB connected')
+  .then((connection) => {
+    const { host, name } = connection.connection
+    console.log(`MongoDB connected: ${host}/${name}`)
   })
   .catch((error) => {
     console.error('MongoDB connection failed:', error.message)

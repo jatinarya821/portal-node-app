@@ -23,6 +23,33 @@ const upload = multer({ storage })
 const pad3 = (n) => String(n).padStart(3, '0')
 const MAX_CASES_PAGE_LIMIT = 100
 
+function buildCaseSnapshotFields(item) {
+  return {
+    caseNumber: item.caseNumber || '',
+    title: item.title || '',
+    type: item.type || '',
+    status: item.status || '',
+    court: item.court || '',
+    judge: item.judge || '',
+    petitioner: item.petitioner || '',
+    respondent: item.respondent || '',
+    summary: item.summary || '',
+  }
+}
+
+async function createRegistrationDocumentForCase(item) {
+  return Document.create({
+    caseId: item._id,
+    docType: 'CaseRegistration',
+    name: 'Case Registration Record',
+    category: 'Registration',
+    uploadedBy: 'System',
+    fileUrl: `/case-detail?id=${item._id}`,
+    uploadedOn: new Date(item.createdAt || Date.now()).toISOString().slice(0, 10),
+    ...buildCaseSnapshotFields(item),
+  })
+}
+
 function parsePositiveInteger(value, fallback) {
   const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed < 1) return fallback
@@ -111,6 +138,8 @@ router.post('/cases', wrap(async (req, res) => {
     summary: summary || '',
   })
 
+  await createRegistrationDocumentForCase(item)
+
   res.status(201).json({ item })
 }))
 
@@ -165,11 +194,13 @@ router.post('/documents', upload.single('file'), wrap(async (req, res) => {
 
   const item = await Document.create({
     caseId,
+    docType: 'Upload',
     name: req.file.originalname,
     category: category || 'Filing',
     uploadedBy: uploadedBy || 'Registry User',
     fileUrl: `/uploads/${req.file.filename}`,
     uploadedOn: new Date().toISOString().slice(0, 10),
+    ...buildCaseSnapshotFields(found),
   })
 
   res.status(201).json({ item })

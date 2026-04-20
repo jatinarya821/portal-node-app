@@ -4,8 +4,17 @@ import { byId, closeModal, openModal, renderApp, toast } from '/public/js/utils.
 let documents = []
 let state = []
 let allCases = []
+let pendingCases = []
 
 function rows(items) {
+  if (!items.length) {
+    return `
+      <tr>
+        <td colspan="6">No documents uploaded yet. Filed cases are stored in Cases and appear here after a file is uploaded.</td>
+      </tr>
+    `
+  }
+
   return items.map((d) => `
     <tr>
       <td>${d._id.slice(-6).toUpperCase()}</td>
@@ -18,9 +27,43 @@ function rows(items) {
   `).join('')
 }
 
+function pendingRows(items) {
+  if (!items.length) {
+    return `
+      <tr>
+        <td colspan="5">All registered cases already have at least one uploaded document.</td>
+      </tr>
+    `
+  }
+
+  return items.map((c) => `
+    <tr>
+      <td><a href="/case-detail?id=${c._id}&tab=documents&openUpload=1">${c.caseNumber || '-'}</a></td>
+      <td>${c.title || '-'}</td>
+      <td>${c.status || '-'}</td>
+      <td>${c.createdAt ? new Date(c.createdAt).toISOString().slice(0, 10) : '-'}</td>
+      <td><a href="/case-detail?id=${c._id}&tab=documents&openUpload=1">Upload</a></td>
+    </tr>
+  `).join('')
+}
+
+function recomputePendingCases() {
+  const casesWithDocs = new Set(
+    documents
+      .map((d) => String(d.caseId?._id || d.caseId || ''))
+      .filter(Boolean)
+  )
+
+  pendingCases = allCases
+    .filter((c) => !casesWithDocs.has(String(c._id || '')))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+}
+
 function redraw() {
   byId('doc-body').innerHTML = rows(state)
   byId('doc-count').textContent = `${state.length} results`
+  byId('pending-case-body').innerHTML = pendingRows(pendingCases)
+  byId('pending-case-count').textContent = `${pendingCases.length} case(s) pending upload`
 }
 
 function applyFilters() {
@@ -71,6 +114,7 @@ function markup() {
         <input id="doc-search" placeholder="Search by document, case, category" style="min-width:260px;flex:1" />
         <select id="doc-filter">
           <option>All</option>
+          <option>Registration</option>
           <option>Filing</option>
           <option>Evidence</option>
           <option>Order</option>
@@ -83,6 +127,17 @@ function markup() {
         <table class="table">
           <thead><tr><th>ID</th><th>Case</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th></tr></thead>
           <tbody id="doc-body"></tbody>
+        </table>
+      </section>
+
+      <section class="card full">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3>Registered Cases Pending Document Upload</h3>
+          <span id="pending-case-count" class="small"></span>
+        </div>
+        <table class="table">
+          <thead><tr><th>Case No.</th><th>Title</th><th>Status</th><th>Filed On</th><th>Action</th></tr></thead>
+          <tbody id="pending-case-body"></tbody>
         </table>
       </section>
 
@@ -116,6 +171,7 @@ async function loadDocuments() {
   const res = await api.get('/documents')
   documents = res.items || []
   state = [...documents]
+  recomputePendingCases()
 }
 
 async function loadCases() {
@@ -124,6 +180,7 @@ async function loadCases() {
   byId('upload-case').innerHTML = allCases
     .map((c) => `<option value="${c._id}">${c.caseNumber} - ${c.title}</option>`)
     .join('')
+  recomputePendingCases()
 }
 
 async function init() {

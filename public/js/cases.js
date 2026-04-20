@@ -191,10 +191,29 @@ function mountModal() {
     }
 
     try {
-      await api.post('/cases', payload)
-      toast('Case filed successfully')
+      const response = await api.post('/cases', payload)
+      const createdCase = response.item
+
+      toast(`Case ${createdCase?.caseNumber || ''} filed successfully`)
       closeModal('new-case-modal')
+
+      if (createdCase?._id) {
+        window.location.href = `/case-detail?id=${encodeURIComponent(createdCase._id)}&tab=documents&openUpload=1`
+        return
+      }
+
+      // Reset list filters so the newly filed case is visible immediately.
+      filters.search = ''
+      filters.status = 'All'
+      filters.type = 'All'
+      filters.priority = 'All'
       filters.page = 1
+
+      byId('search').value = ''
+      byId('status-filter').value = 'All'
+      byId('type-filter').value = 'All'
+      byId('priority-filter').value = 'All'
+
       await loadCases()
       redraw()
     } catch (error) {
