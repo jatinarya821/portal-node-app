@@ -10,6 +10,11 @@ const caseSchema = new mongoose.Schema(
       enum: ['Filed', 'Under Review', 'Hearing Scheduled', 'Adjourned', 'Closed'],
       default: 'Filed',
     },
+    priority: {
+      type: String,
+      enum: ['Low', 'Medium', 'High', 'Urgent'],
+      default: 'Medium',
+    },
     court: { type: String, default: 'Courtroom 1' },
     judge: { type: String, default: 'Not Assigned' },
     petitioner: { type: String, default: '' },

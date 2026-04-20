@@ -42,17 +42,22 @@ async function generateCaseNumber() {
 
 router.get('/cases', wrap(async (req, res) => {
   const search = (req.query.search || '').trim()
+  const status = (req.query.status || 'All').trim()
   const type = (req.query.type || 'All').trim()
+  const priority = (req.query.priority || 'All').trim()
   const shouldPaginate = Object.prototype.hasOwnProperty.call(req.query, 'page')
     || Object.prototype.hasOwnProperty.call(req.query, 'limit')
 
   const query = {}
+  if (status !== 'All') query.status = status
   if (type !== 'All') query.type = type
+  if (priority !== 'All') query.priority = priority
   if (search) {
     query.$or = [
       { caseNumber: { $regex: search, $options: 'i' } },
       { title: { $regex: search, $options: 'i' } },
       { status: { $regex: search, $options: 'i' } },
+      { priority: { $regex: search, $options: 'i' } },
       { judge: { $regex: search, $options: 'i' } },
     ]
   }
@@ -87,7 +92,7 @@ router.get('/cases', wrap(async (req, res) => {
 }))
 
 router.post('/cases', wrap(async (req, res) => {
-  const { title, type, status, court, judge, petitioner, respondent, summary } = req.body
+  const { title, type, status, priority, court, judge, petitioner, respondent, summary } = req.body
   if (!title || !type) {
     return res.status(400).json({ message: 'title and type are required' })
   }
@@ -98,6 +103,7 @@ router.post('/cases', wrap(async (req, res) => {
     title,
     type,
     status: status || 'Filed',
+    priority: priority || 'Medium',
     court: court || 'Courtroom 1',
     judge: judge || 'Not Assigned',
     petitioner: petitioner || '',

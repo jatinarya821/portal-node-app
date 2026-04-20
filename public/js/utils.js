@@ -1,8 +1,13 @@
 import { getCurrentUser, signOut } from '/public/js/auth-client.js'
 
 export const Icons = {
+  portalMark: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4z"/><path d="M8.5 11.5h7M10.5 9.5 8.5 11.5l2 2M13.5 9.5l2 2-2 2"/></svg>',
   gavel: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3l7 7-3 3-7-7 3-3zM2 21l6-6"/><path d="M5 18l-2 2"/></svg>',
+  dashboard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>',
+  cases: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 5V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1"/><path d="M3 10h18"/></svg>',
   folder: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h6l2 2h10v10a2 2 0 0 1-2 2H3z"/></svg>',
+  hearings: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M8 3v3M16 3v3"/></svg>',
+  documents: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
   calendar: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>',
   search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
   bell: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M10 17a2 2 0 0 0 4 0"/></svg>',
@@ -82,7 +87,7 @@ export function shell(currentPath, pageTitle) {
       <header class="site-header">
         <div class="topbar">
           <div class="brand-wrap">
-            <div class="brand">${Icons.gavel}<span>Judicial Case Management Portal</span></div>
+            <div class="brand"><span class="brand-mark" aria-hidden="true">${Icons.portalMark}</span><span>Judicial Case Management Portal</span></div>
             <p class="tagline">Court workflow, hearing intelligence, and document control in one place.</p>
           </div>
 
@@ -104,21 +109,17 @@ export function shell(currentPath, pageTitle) {
               <span class="notify-count">${notifications.length}</span>
             </button>
 
-            <button id="profile-toggle" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <button id="profile-toggle" class="profile-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Open profile menu">
               <span class="avatar">${avatarLabel}</span>
-              <span class="profile-copy">
-                <b>${currentUser.fullName}</b>
-                <small>${currentUser.role}</small>
-              </span>
             </button>
           </div>
         </div>
 
         <nav class="nav nav-below" aria-label="Primary navigation">
-          <a href="/dashboard" class="${currentPath === '/dashboard' ? 'active' : ''}">Dashboard</a>
-          <a href="/cases" class="${currentPath === '/cases' ? 'active' : ''}">Cases</a>
-          <a href="/hearings" class="${currentPath === '/hearings' ? 'active' : ''}">Hearings</a>
-          <a href="/documents" class="${currentPath === '/documents' ? 'active' : ''}">Documents</a>
+          <a href="/dashboard" class="${currentPath === '/dashboard' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.dashboard}</span><span>Dashboard</span></span></a>
+          <a href="/cases" class="${currentPath === '/cases' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.cases}</span><span>Cases</span></span></a>
+          <a href="/hearings" class="${currentPath === '/hearings' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.hearings}</span><span>Hearings</span></span></a>
+          <a href="/documents" class="${currentPath === '/documents' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.documents}</span><span>Documents</span></span></a>
         </nav>
 
         <div id="notifications-panel" class="notifications-panel" hidden>
