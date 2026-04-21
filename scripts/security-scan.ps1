@@ -2,7 +2,7 @@
 Set-StrictMode -Version Latest
 $repoRoot = (git rev-parse --show-toplevel).Trim()
 Set-Location $repoRoot
-$trackedEnv = git ls-files -- .env .env.*
+$trackedEnv = @(git ls-files -- .env .env.* | Where-Object { $_ -ne '.env.example' })
 if ($trackedEnv) { Write-Host "Blocked: tracked .env files." -ForegroundColor Red; exit 1 }
 $patterns = @(
   "(?i)\bMONGODB_URI\b\s*[=:]\s*[''\""]?mongodb(?:\+srv)?:\/\/[^:\s\/@]+:(?!REPLACE_WITH_STRONG_PASSWORD|CHANGE_ME|YOUR_PASSWORD)[^@\s]+@",
