@@ -501,6 +501,16 @@ h3 {
   margin-top: 0.8rem;
 }
 
+.login-form button,
+.demo-user-item button {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.login-form button:hover,
+.demo-user-item button:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
 .login-form label {
   font-weight: 600;
   font-size: 0.91rem;

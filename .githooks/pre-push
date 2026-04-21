@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+npm run security:scan
+RESULT=$?
+if [ $RESULT -ne 0 ]; then
+  echo "Push blocked by security scan."
+  exit $RESULT
+fi
+exit 0

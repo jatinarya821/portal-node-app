@@ -9,6 +9,13 @@ const DEMO_USERS = [
     role: 'Court Administrator',
   },
   {
+    id: 'admin-001',
+    fullName: 'Dishant Thakur',
+    email: 'admin@court.local',
+    password: 'admin123',
+    role: 'Court Administrator',
+  },
+  {
     id: 'judge-001',
     fullName: 'Justice R. Sharma',
     email: 'judge@court.local',
