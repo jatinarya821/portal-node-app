@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: portal-node-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REQUIRE_MONGO_AUTH
+        value: "true"
+      - key: MONGODB_URI
+        sync: false

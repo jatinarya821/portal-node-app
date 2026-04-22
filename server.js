@@ -1,4 +1,5 @@
 const express = require('express')
+const fs = require('fs')
 const path = require('path')
 const cors = require('cors')
 const dotenv = require('dotenv')
@@ -11,6 +12,9 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 const pagesDir = path.join(__dirname, 'pages')
+const uploadsDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, 'uploads')
 
 connectDB(process.env.MONGODB_URI)
   .then((connection) => {
@@ -26,9 +30,17 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
 app.use('/public', express.static(path.join(__dirname, 'public')))
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use('/uploads', express.static(uploadsDir))
 app.use('/api', apiRoutes)
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' })
+})
 
 app.get('/', (req, res) => {
   res.redirect('/login')

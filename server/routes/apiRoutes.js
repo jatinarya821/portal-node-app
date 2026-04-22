@@ -8,10 +8,13 @@ const Document = require('../models/Document')
 
 const router = express.Router()
 const wrap = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
+const uploadsDir = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.resolve(__dirname, '../../uploads')
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(process.cwd(), 'uploads'))
+    cb(null, uploadsDir)
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)

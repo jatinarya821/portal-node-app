@@ -100,6 +100,54 @@ git config core.hooksPath .githooks
 http://127.0.0.1:3000
 ```
 
+## Deploy (Render + MongoDB Atlas)
+
+This app is ready to deploy as a Node web service with MongoDB Atlas.
+
+### 1. Prepare MongoDB Atlas
+
+1. Create a cluster.
+2. Create a database user (username/password).
+3. Add network access (your host IP or temporary `0.0.0.0/0` for testing).
+4. Copy your connection string and replace the db name with `portal_node_app`.
+
+### 2. Push this app to GitHub
+
+From the `portal-node-app` folder:
+
+```bash
+git add .
+git commit -m "Prepare app for deployment"
+git push
+```
+
+### 3. Deploy on Render
+
+You can use the included `render.yaml` blueprint.
+
+1. In Render, select **New +** -> **Blueprint**.
+2. Connect your GitHub repo and deploy.
+3. In service environment variables, set:
+
+```env
+MONGODB_URI=<your atlas connection string>
+NODE_ENV=production
+REQUIRE_MONGO_AUTH=true
+```
+
+Render injects `PORT` automatically.
+
+### 4. Verify after deploy
+
+- `GET /health` should return `{ "status": "ok" }`
+- Open `/login`, `/dashboard`, and test `/api/cases`
+
+### Uploads on hosted platforms
+
+- Uploaded files are written to the local filesystem (`/uploads`).
+- On free/ephemeral hosting, files may be lost on restart/redeploy.
+- For persistent uploads, use object storage (S3/Cloudinary) or mount persistent disk and set `UPLOADS_DIR`.
+
 ## API Endpoints
 
 ### Cases
