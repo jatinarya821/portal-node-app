@@ -11,18 +11,22 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 const pagesDir = path.join(__dirname, 'pages')
+let hasLoggedDbConnection = false
 
-connectDB(process.env.MONGODB_URI)
-  .then((connection) => {
-    const { host, name } = connection.connection
-    console.log(`MongoDB connected: ${host}/${name}`)
-  })
-  .catch((error) => {
-    console.error('MongoDB connection failed:', error.message)
-    if (require.main === module) {
-      process.exit(1)
+async function ensureDbConnected(req, res, next) {
+  try {
+    const connection = await connectDB(process.env.MONGODB_URI)
+    if (!hasLoggedDbConnection) {
+      const { host, name } = connection.connection
+      console.log(`MongoDB connected: ${host}/${name}`)
+      hasLoggedDbConnection = true
     }
-  })
+    next()
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message)
+    next(error)
+  }
+}
 
 app.use(cors())
 app.use(express.json())
@@ -30,7 +34,7 @@ app.use(express.urlencoded({ extended: true }))
 
 app.use('/public', express.static(path.join(__dirname, 'public')))
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
-app.use('/api', apiRoutes)
+app.use('/api', ensureDbConnected, apiRoutes)
 
 app.get('/', (req, res) => {
   res.redirect('/login')
@@ -70,9 +74,20 @@ app.use((error, req, res, next) => {
 })
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Portal app running at http://127.0.0.1:${PORT}`)
-  })
+  connectDB(process.env.MONGODB_URI)
+    .then((connection) => {
+      const { host, name } = connection.connection
+      console.log(`MongoDB connected: ${host}/${name}`)
+      hasLoggedDbConnection = true
+
+      app.listen(PORT, () => {
+        console.log(`Portal app running at http://127.0.0.1:${PORT}`)
+      })
+    })
+    .catch((error) => {
+      console.error('MongoDB connection failed:', error.message)
+      process.exit(1)
+    })
 }
 
 module.exports = app
