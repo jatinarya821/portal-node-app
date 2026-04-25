@@ -7,6 +7,13 @@ let detail = null
 let hearings = []
 let documents = []
 
+function getDownloadUrl(documentItem) {
+  const url = String(documentItem?.fileUrl || '')
+  if (url.startsWith('/api/documents/') && url.endsWith('/file')) return url
+  if (url.startsWith('/uploads/')) return url
+  return ''
+}
+
 function infoPane() {
   if (!detail) {
     return '<div class="card"><p>Case not found.</p></div>'
@@ -53,9 +60,20 @@ function documentsPane() {
         <button id="open-doc-modal">Upload</button>
       </div>
       <table class="table">
-        <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th></tr></thead>
+        <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th><th>Action</th></tr></thead>
         <tbody>
-          ${list.map((d) => `<tr><td>${d._id.slice(-6).toUpperCase()}</td><td><a href="${d.fileUrl}" target="_blank" rel="noreferrer">${d.name}</a></td><td>${d.category}</td><td>${d.uploadedBy}</td><td>${d.uploadedOn}</td></tr>`).join('') || '<tr><td colspan="5">No documents yet</td></tr>'}
+          ${list.map((d) => {
+    const downloadUrl = getDownloadUrl(d)
+    const hasUploadedFile = Boolean(downloadUrl)
+    const nameCell = hasUploadedFile
+      ? `<a href="${downloadUrl}" target="_blank" rel="noreferrer">${d.name}</a>`
+      : d.name
+    const actionCell = hasUploadedFile
+      ? `<a href="${downloadUrl}" download>Download</a>`
+      : '-'
+
+    return `<tr><td>${d._id.slice(-6).toUpperCase()}</td><td>${nameCell}</td><td>${d.category}</td><td>${d.uploadedBy}</td><td>${d.uploadedOn}</td><td>${actionCell}</td></tr>`
+  }).join('') || '<tr><td colspan="6">No documents yet</td></tr>'}
         </tbody>
       </table>
     </div>

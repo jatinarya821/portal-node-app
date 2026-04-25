@@ -1,6 +1,7 @@
 const express = require('express')
 const multer = require('multer')
-const path = require('path')
+const mongoose = require('mongoose')
+const { Readable } = require('stream')
 
 const Case = require('../models/Case')
 const Hearing = require('../models/Hearing')
@@ -8,18 +9,7 @@ const Document = require('../models/Document')
 
 const router = express.Router()
 const wrap = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
-const uploadsDir = process.env.UPLOADS_DIR
-  ? path.resolve(process.env.UPLOADS_DIR)
-  : path.resolve(__dirname, '../../uploads')
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir)
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
-  },
-})
+const storage = multer.memoryStorage()
 
 const upload = multer({ storage })
 
@@ -68,6 +58,34 @@ async function generateCaseNumber() {
     },
   })
   return `C-${year}-${pad3(count + 1)}`
+}
+
+function getUploadsBucket() {
+  if (!mongoose.connection || !mongoose.connection.db) {
+    throw new Error('Database connection is not ready')
+  }
+  return new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'uploads' })
+}
+
+function uploadBufferToGridFS(file, metadata = {}) {
+  return new Promise((resolve, reject) => {
+    const safeName = `${Date.now()}-${String(file.originalname || 'upload').replace(/\s+/g, '_')}`
+    const bucket = getUploadsBucket()
+    const stream = bucket.openUploadStream(safeName, {
+      contentType: file.mimetype || 'application/octet-stream',
+      metadata,
+    })
+
+    stream.once('error', reject)
+    stream.once('finish', () => {
+      resolve({
+        fileId: stream.id,
+        filename: safeName,
+      })
+    })
+
+    Readable.from(file.buffer).pipe(stream)
+  })
 }
 
 router.get('/cases', wrap(async (req, res) => {
@@ -195,18 +213,63 @@ router.post('/documents', upload.single('file'), wrap(async (req, res) => {
   const found = await Case.findById(caseId)
   if (!found) return res.status(404).json({ message: 'Linked case not found' })
 
-  const item = await Document.create({
+  const uploaded = await uploadBufferToGridFS(req.file, {
+    caseId,
+    uploadedBy: uploadedBy || 'Registry User',
+    category: category || 'Filing',
+  })
+
+  const item = new Document({
     caseId,
     docType: 'Upload',
     name: req.file.originalname,
     category: category || 'Filing',
     uploadedBy: uploadedBy || 'Registry User',
-    fileUrl: `/uploads/${req.file.filename}`,
+    gridFsFileId: uploaded.fileId,
+    fileUrl: '',
     uploadedOn: new Date().toISOString().slice(0, 10),
     ...buildCaseSnapshotFields(found),
   })
 
+  item.fileUrl = `/api/documents/${item._id}/file`
+  await item.save()
+
   res.status(201).json({ item })
+}))
+
+router.get('/documents/:id/file', wrap(async (req, res) => {
+  const item = await Document.findById(req.params.id)
+  if (!item) return res.status(404).json({ message: 'Document not found' })
+
+  if (item.gridFsFileId) {
+    const bucket = getUploadsBucket()
+    const files = await bucket.find({ _id: item.gridFsFileId }).limit(1).toArray()
+    const fileMeta = files[0]
+    if (!fileMeta) return res.status(404).json({ message: 'Stored file not found' })
+
+    const safeDownloadName = String(item.name || fileMeta.filename || 'document')
+      .replace(/[\\/:*?"<>|]+/g, '_')
+
+    res.setHeader('Content-Type', fileMeta.contentType || 'application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${safeDownloadName}"`)
+
+    const downloadStream = bucket.openDownloadStream(item.gridFsFileId)
+    downloadStream.on('error', (error) => {
+      if (!res.headersSent) {
+        res.status(500).json({ message: error.message || 'Unable to stream file' })
+        return
+      }
+      res.destroy(error)
+    })
+    downloadStream.pipe(res)
+    return
+  }
+
+  if (typeof item.fileUrl === 'string' && item.fileUrl.startsWith('/uploads/')) {
+    return res.redirect(item.fileUrl)
+  }
+
+  return res.status(404).json({ message: 'No downloadable file linked to this record' })
 }))
 
 module.exports = router

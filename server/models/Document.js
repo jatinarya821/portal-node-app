@@ -11,6 +11,7 @@ const documentSchema = new mongoose.Schema(
     name: { type: String, required: true },
     category: { type: String, default: 'Filing' },
     uploadedBy: { type: String, default: 'Registry User' },
+    gridFsFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
     fileUrl: { type: String, default: '' },
     uploadedOn: { type: String, required: true },
     caseNumber: { type: String, default: '' },

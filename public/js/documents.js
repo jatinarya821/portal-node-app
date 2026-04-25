@@ -6,11 +6,18 @@ let state = []
 let allCases = []
 let pendingCases = []
 
+function getDownloadUrl(documentItem) {
+  const url = String(documentItem?.fileUrl || '')
+  if (url.startsWith('/api/documents/') && url.endsWith('/file')) return url
+  if (url.startsWith('/uploads/')) return url
+  return ''
+}
+
 function rows(items) {
   if (!items.length) {
     return `
       <tr>
-        <td colspan="6">No documents uploaded yet. Filed cases are stored in Cases and appear here after a file is uploaded.</td>
+        <td colspan="7">No documents uploaded yet. Filed cases are stored in Cases and appear here after a file is uploaded.</td>
       </tr>
     `
   }
@@ -23,6 +30,7 @@ function rows(items) {
       <td>${d.category}</td>
       <td>${d.uploadedBy}</td>
       <td>${d.uploadedOn}</td>
+      <td>${getDownloadUrl(d) ? `<a href="${getDownloadUrl(d)}" download>Download</a>` : '-'}</td>
     </tr>
   `).join('')
 }
@@ -125,7 +133,7 @@ function markup() {
 
       <section class="card full">
         <table class="table">
-          <thead><tr><th>ID</th><th>Case</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th></tr></thead>
+          <thead><tr><th>ID</th><th>Case</th><th>Name</th><th>Category</th><th>Uploaded By</th><th>Date</th><th>Action</th></tr></thead>
           <tbody id="doc-body"></tbody>
         </table>
       </section>
