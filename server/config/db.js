@@ -1,19 +1,40 @@
 const mongoose = require('mongoose')
 
+let cachedConnection = null
+let cachedConnectionPromise = null
+
 async function connectDB(uri) {
   if (!uri) {
     throw new Error('MONGODB_URI is not set')
   }
 
-  // Assumption: traditional long-running local Node server with moderate traffic.
-  return mongoose.connect(uri, {
-    maxPoolSize: 20,
-    minPoolSize: 5,
+  if (cachedConnection) {
+    return cachedConnection
+  }
+
+  if (cachedConnectionPromise) {
+    return cachedConnectionPromise
+  }
+
+  // Reuse one connection per runtime instance to avoid pool spikes on serverless.
+  cachedConnectionPromise = mongoose.connect(uri, {
+    maxPoolSize: 10,
+    minPoolSize: 0,
     connectTimeoutMS: 10000,
     socketTimeoutMS: 30000,
     serverSelectionTimeoutMS: 5000,
     maxIdleTimeMS: 300000,
   })
+    .then((connection) => {
+      cachedConnection = connection
+      return connection
+    })
+    .catch((error) => {
+      cachedConnectionPromise = null
+      throw error
+    })
+
+  return cachedConnectionPromise
 }
 
 module.exports = connectDB
