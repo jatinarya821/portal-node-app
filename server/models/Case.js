@@ -7,7 +7,7 @@ const caseSchema = new mongoose.Schema(
     type: { type: String, required: true, trim: true },
     status: {
       type: String,
-      enum: ['Filed', 'Under Review', 'Hearing Scheduled', 'Adjourned', 'Closed'],
+      enum: ['Filed', 'Under Review', 'Hearing Scheduled', 'Adjourned', 'Closed', 'Withdrawn'],
       default: 'Filed',
     },
     priority: {

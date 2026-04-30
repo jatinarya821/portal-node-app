@@ -187,6 +187,65 @@ router.get('/cases/:id', wrap(async (req, res) => {
   res.json({ item })
 }))
 
+// ── Edit case (clerk/admin: all fields; citizen/advocate: only if Filed) ──
+router.patch('/cases/:id', wrap(async (req, res) => {
+  const role = req.session && req.session.userRole
+  const userId = req.session && req.session.userId
+  const item = await Case.findById(req.params.id)
+  if (!item) return res.status(404).json({ message: 'Case not found' })
+
+  // Citizens/advocates can only edit their own cases while still Filed
+  if (role === 'citizen' || role === 'advocate') {
+    if (String(item.submittedBy) !== String(userId)) {
+      return res.status(403).json({ message: 'You can only edit your own cases' })
+    }
+    if (item.status !== 'Filed') {
+      return res.status(403).json({ message: 'Case can only be edited while status is Filed' })
+    }
+    // Citizens can only update limited fields
+    const { title, petitioner, respondent, summary } = req.body
+    Object.assign(item, { title, petitioner, respondent, summary })
+  } else if (role === 'clerk' || role === 'admin') {
+    // Clerks/admins can update any field
+    const { title, type, status, priority, court, judge, petitioner, respondent, summary } = req.body
+    Object.assign(item, { title, type, status, priority, court, judge, petitioner, respondent, summary })
+  } else {
+    return res.status(403).json({ message: 'Not authorized to edit cases' })
+  }
+
+  await item.save()
+  res.json({ item })
+}))
+
+// ── Delete case (soft delete — sets status to Withdrawn) ──────────────────
+router.delete('/cases/:id', wrap(async (req, res) => {
+  const role = req.session && req.session.userRole
+  const userId = req.session && req.session.userId
+  const item = await Case.findById(req.params.id)
+  if (!item) return res.status(404).json({ message: 'Case not found' })
+
+  if (role === 'citizen' || role === 'advocate') {
+    if (String(item.submittedBy) !== String(userId)) {
+      return res.status(403).json({ message: 'You can only withdraw your own cases' })
+    }
+    if (item.status !== 'Filed') {
+      return res.status(403).json({ message: 'Only Filed cases can be withdrawn' })
+    }
+    item.status = 'Withdrawn'
+    await item.save()
+    return res.json({ message: 'Case withdrawn successfully', item })
+  }
+
+  if (role === 'clerk' || role === 'admin') {
+    item.status = 'Withdrawn'
+    await item.save()
+    return res.json({ message: 'Case withdrawn successfully', item })
+  }
+
+  return res.status(403).json({ message: 'Not authorized to delete cases' })
+}))
+
+// ── Hearings ───────────────────────────────────────────────────────────────
 router.get('/hearings', wrap(async (req, res) => {
   const query = {}
   if (req.query.caseId) query.caseId = req.query.caseId
@@ -215,6 +274,38 @@ router.post('/hearings', wrap(async (req, res) => {
   res.status(201).json({ item })
 }))
 
+// ── Edit hearing (clerk/admin only) ───────────────────────────────────────
+router.patch('/hearings/:id', wrap(async (req, res) => {
+  const role = req.session && req.session.userRole
+  if (role !== 'clerk' && role !== 'admin' && role !== 'judge') {
+    return res.status(403).json({ message: 'Not authorized to edit hearings' })
+  }
+  const item = await Hearing.findById(req.params.id)
+  if (!item) return res.status(404).json({ message: 'Hearing not found' })
+
+  const { date, time, status, courtroom } = req.body
+  Object.assign(item, {
+    date: date || item.date,
+    time: time || item.time,
+    status: status || item.status,
+    courtroom: courtroom || item.courtroom,
+  })
+  await item.save()
+  res.json({ item })
+}))
+
+// ── Delete hearing (clerk/admin only) ─────────────────────────────────────
+router.delete('/hearings/:id', wrap(async (req, res) => {
+  const role = req.session && req.session.userRole
+  if (role !== 'clerk' && role !== 'admin') {
+    return res.status(403).json({ message: 'Not authorized to delete hearings' })
+  }
+  const item = await Hearing.findByIdAndDelete(req.params.id)
+  if (!item) return res.status(404).json({ message: 'Hearing not found' })
+  res.json({ message: 'Hearing deleted', item })
+}))
+
+// ── Documents ──────────────────────────────────────────────────────────────
 router.get('/documents', wrap(async (req, res) => {
   const query = {}
   if (req.query.caseId) query.caseId = req.query.caseId
@@ -289,4 +380,53 @@ router.get('/documents/:id/file', wrap(async (req, res) => {
   return res.status(404).json({ message: 'No downloadable file linked to this record' })
 }))
 
+// ══════════════════════════════════════════════════════════════════════════
+// USER ADMIN ROUTES — Admin only
+// ══════════════════════════════════════════════════════════════════════════
+const User = require('../models/User')
+const { requireRole } = require('../middleware/auth')
+
+// List all users (admin only)
+router.get('/users', requireRole('admin'), wrap(async (req, res) => {
+  const users = await User.find({})
+    .select('-passwordHash')
+    .sort({ createdAt: -1 })
+  res.json({ items: users })
+}))
+
+// Update user role or status (admin only)
+router.patch('/users/:id', requireRole('admin'), wrap(async (req, res) => {
+  const { role, isActive, fullName } = req.body
+  const validRoles = ['admin', 'judge', 'clerk', 'advocate', 'citizen']
+  if (role && !validRoles.includes(role)) {
+    return res.status(400).json({ message: 'Invalid role' })
+  }
+
+  const user = await User.findById(req.params.id).select('-passwordHash')
+  if (!user) return res.status(404).json({ message: 'User not found' })
+
+  // Prevent admin from removing their own admin role
+  if (String(user._id) === String(req.session.userId) && role && role !== 'admin') {
+    return res.status(403).json({ message: 'You cannot change your own role' })
+  }
+
+  if (role !== undefined) user.role = role
+  if (isActive !== undefined) user.isActive = isActive
+  if (fullName !== undefined) user.fullName = fullName
+  await user.save()
+
+  res.json({ item: user })
+}))
+
+// Delete user (admin only — hard delete)
+router.delete('/users/:id', requireRole('admin'), wrap(async (req, res) => {
+  if (String(req.params.id) === String(req.session.userId)) {
+    return res.status(403).json({ message: 'You cannot delete your own account' })
+  }
+  const user = await User.findByIdAndDelete(req.params.id)
+  if (!user) return res.status(404).json({ message: 'User not found' })
+  res.json({ message: 'User deleted successfully' })
+}))
+
 module.exports = router
+

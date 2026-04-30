@@ -2355,3 +2355,69 @@ button.secondary {
 
 .field-required { color: #dc2626; }
 
+/* ══════════════════════════════════════════════════
+   ADMIN USERS PAGE
+   ══════════════════════════════════════════════════ */
+
+.admin-users-page { display: grid; gap: 1.2rem; }
+
+.admin-users-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.admin-users-header h2 { margin: 0 0 0.15rem; }
+
+.admin-role-stats {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+}
+.admin-role-chip {
+  display: flex; align-items: center; gap: 0.35rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+}
+.admin-role-count {
+  font-weight: 700; font-size: 0.85rem; color: var(--ink);
+}
+
+.admin-search-bar {
+  padding: 0.75rem 1rem;
+}
+.admin-search-bar input {
+  width: 100%; max-width: 420px;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.95rem;
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color 140ms;
+}
+.admin-search-bar input:focus {
+  outline: none; border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent);
+}
+
+.admin-table-card { overflow-x: auto; }
+
+.admin-users-table td, .admin-users-table th {
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.admin-action-btn {
+  padding: 0.3rem 0.65rem;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.admin-action-btn:hover {
+  background: var(--chip-bg);
+  border-color: color-mix(in srgb, var(--line) 60%, var(--ink));
+}
+
+

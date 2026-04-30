@@ -32,6 +32,24 @@ export const api = {
     return parseResponse(res)
   },
 
+  async patch(path, body) {
+    const res = await fetch(`/api${path}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return parseResponse(res)
+  },
+
+  async delete(path) {
+    const res = await fetch(`/api${path}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    return parseResponse(res)
+  },
+
   async upload(path, formData) {
     const res = await fetch(`/api${path}`, {
       method: 'POST',
