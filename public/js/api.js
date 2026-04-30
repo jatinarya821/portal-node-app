@@ -1,7 +1,17 @@
 async function parseResponse(response) {
-  const payload = await response.json().catch(() => ({}))
+  const raw = await response.text()
+  const payload = (() => {
+    if (!raw) return {}
+    try {
+      return JSON.parse(raw)
+    } catch (error) {
+      return {}
+    }
+  })()
+
   if (!response.ok) {
-    throw new Error(payload.message || 'Request failed')
+    const fallbackText = typeof raw === 'string' ? raw.trim().replace(/\s+/g, ' ').slice(0, 220) : ''
+    throw new Error(payload.message || fallbackText || `Request failed (${response.status})`)
   }
   return payload
 }

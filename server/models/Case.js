@@ -20,6 +20,8 @@ const caseSchema = new mongoose.Schema(
     petitioner: { type: String, default: '' },
     respondent: { type: String, default: '' },
     summary: { type: String, default: '' },
+    // Who submitted this case (citizen/advocate userId)
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 )

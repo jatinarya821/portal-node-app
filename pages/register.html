@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Judicial Case Management Portal</title>
+  <meta name="description" content="Create a citizen or advocate account to file cases and track matters on the Judicial Case Management Portal." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="/public/css/styles.css" />
+</head>
+<body class="login-body">
+  <main class="login-shell">
+    <div class="login-left">
+      <div class="login-brand">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4z"/><path d="M8.5 11.5h7M10.5 9.5 8.5 11.5l2 2M13.5 9.5l2 2-2 2"/></svg>
+        <span>Judicial Portal</span>
+      </div>
+      <div class="login-hero-text">
+        <h1>File Your Case<br/>Online</h1>
+        <p>Citizens and advocates can register, submit cases, upload documents, and track progress — all in one place.</p>
+      </div>
+      <ul class="login-features">
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Submit cases from anywhere
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Upload supporting documents
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Get hearing date notifications
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Track your case status live
+        </li>
+      </ul>
+    </div>
+
+    <div class="login-right">
+      <section class="login-card">
+        <p class="eyebrow">Court e-Portal</p>
+        <h2>Create Account</h2>
+        <p class="login-sub">Register as a citizen or advocate to get started.</p>
+
+        <form id="register-form" class="login-form" novalidate>
+          <div class="field-group">
+            <label for="reg-name">Full Name</label>
+            <input id="reg-name" name="fullName" type="text" required
+              autocomplete="name" placeholder="Your full legal name" />
+          </div>
+
+          <div class="field-group">
+            <label for="reg-email">Email Address</label>
+            <input id="reg-email" name="email" type="email" required
+              autocomplete="email" placeholder="you@example.com" />
+          </div>
+
+          <div class="field-group">
+            <label for="reg-password">Password <span class="field-hint">(min. 8 characters)</span></label>
+            <input id="reg-password" name="password" type="password" required
+              autocomplete="new-password" placeholder="Create a strong password" />
+          </div>
+
+          <div class="field-group">
+            <label for="reg-role">I am a…</label>
+            <select id="reg-role" name="role">
+              <option value="citizen">Citizen / Litigant</option>
+              <option value="advocate">Advocate / Lawyer</option>
+            </select>
+          </div>
+
+          <div class="field-group" id="bar-number-group" style="display:none">
+            <label for="reg-bar">Bar Council Registration No.</label>
+            <input id="reg-bar" name="barNumber" type="text"
+              placeholder="e.g. BAR/2023/0001" />
+          </div>
+
+          <button id="reg-submit" type="submit" class="btn-primary full-width">Create Account</button>
+        </form>
+
+        <p id="reg-message" class="login-message" role="status" aria-live="polite"></p>
+        <p id="reg-error" class="login-error" role="alert"></p>
+
+        <p class="login-register-link">
+          Already have an account?
+          <a href="/login">Sign in</a>
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/public/js/register.js"></script>
+</body>
+</html>

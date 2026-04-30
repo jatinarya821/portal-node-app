@@ -96,7 +96,23 @@ router.get('/cases', wrap(async (req, res) => {
   const shouldPaginate = Object.prototype.hasOwnProperty.call(req.query, 'page')
     || Object.prototype.hasOwnProperty.call(req.query, 'limit')
 
+  const sessionRole = req.session && req.session.userRole
+  const sessionUserId = req.session && req.session.userId
+
   const query = {}
+
+  // ── Role-based data scoping ──────────────────────────────────────────
+  if (sessionRole === 'citizen' || sessionRole === 'advocate') {
+    // Only see cases they submitted
+    query.submittedBy = sessionUserId
+  } else if (sessionRole === 'judge') {
+    // Only see cases assigned to them
+    if (req.session.userFullName) {
+      query.judge = req.session.userFullName
+    }
+  }
+  // clerk and admin see all cases — no filter applied
+
   if (status !== 'All') query.status = status
   if (type !== 'All') query.type = type
   if (priority !== 'All') query.priority = priority
@@ -157,6 +173,7 @@ router.post('/cases', wrap(async (req, res) => {
     petitioner: petitioner || '',
     respondent: respondent || '',
     summary: summary || '',
+    submittedBy: req.session && req.session.userId ? req.session.userId : null,
   })
 
   await createRegistrationDocumentForCase(item)

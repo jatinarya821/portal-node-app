@@ -1,4 +1,4 @@
-import { getCurrentUser, signOut } from '/public/js/auth-client.js'
+import { getCurrentUser, signOut, fetchCurrentUser } from '/public/js/auth-client.js'
 
 export const Icons = {
   portalMark: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4z"/><path d="M8.5 11.5h7M10.5 9.5 8.5 11.5l2 2M13.5 9.5l2 2-2 2"/></svg>',
@@ -12,8 +12,68 @@ export const Icons = {
   search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
   bell: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M10 17a2 2 0 0 0 4 0"/></svg>',
   moon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
-  sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'
+  sun: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  users: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  submit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg>',
+  home: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
 }
+
+// ─── Role badge label ──────────────────────────────────────────────────────
+export function roleBadge(role) {
+  const map = {
+    admin:    { label: 'Administrator',   color: '#7c3aed' },
+    judge:    { label: 'Judge',           color: '#0369a1' },
+    clerk:    { label: 'Registry Clerk',  color: '#0f766e' },
+    advocate: { label: 'Advocate',        color: '#b45309' },
+    citizen:  { label: 'Citizen',         color: '#374151' },
+  }
+  const entry = map[role] || { label: role || 'User', color: '#374151' }
+  return `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:999px;font-size:0.72rem;font-weight:700;background:${entry.color}18;color:${entry.color};border:1px solid ${entry.color}40">${entry.label}</span>`
+}
+
+// ─── Role-aware navigation builder ────────────────────────────────────────
+function navLink(href, icon, label, currentPath) {
+  const active = currentPath === href || currentPath.startsWith(href + '/') ? 'active' : ''
+  return `<a href="${href}" class="${active}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${icon}</span><span>${label}</span></span></a>`
+}
+
+function buildNav(currentPath, role) {
+  if (role === 'citizen' || role === 'advocate') {
+    return [
+      navLink('/citizen/dashboard', Icons.home,      'My Dashboard', currentPath),
+      navLink('/citizen/my-cases',  Icons.cases,     'My Cases',     currentPath),
+      navLink('/citizen/submit',    Icons.submit,    'Submit Case',  currentPath),
+    ].join('')
+  }
+
+  if (role === 'judge') {
+    return [
+      navLink('/dashboard',  Icons.dashboard,  'Dashboard',  currentPath),
+      navLink('/cases',      Icons.cases,      'My Cases',   currentPath),
+      navLink('/hearings',   Icons.hearings,   'Hearings',   currentPath),
+      navLink('/documents',  Icons.documents,  'Documents',  currentPath),
+    ].join('')
+  }
+
+  if (role === 'clerk') {
+    return [
+      navLink('/dashboard',  Icons.dashboard,  'Dashboard',  currentPath),
+      navLink('/cases',      Icons.cases,      'Cases',      currentPath),
+      navLink('/hearings',   Icons.hearings,   'Hearings',   currentPath),
+      navLink('/documents',  Icons.documents,  'Documents',  currentPath),
+    ].join('')
+  }
+
+  // admin — full access
+  return [
+    navLink('/dashboard',    Icons.dashboard,  'Dashboard',  currentPath),
+    navLink('/cases',        Icons.cases,      'Cases',      currentPath),
+    navLink('/hearings',     Icons.hearings,   'Hearings',   currentPath),
+    navLink('/documents',    Icons.documents,  'Documents',  currentPath),
+    navLink('/admin/users',  Icons.users,      'Users',      currentPath),
+  ].join('')
+}
+
 
 const THEME_KEY = 'portal-theme'
 
@@ -116,10 +176,7 @@ export function shell(currentPath, pageTitle) {
         </div>
 
         <nav class="nav nav-below" aria-label="Primary navigation">
-          <a href="/dashboard" class="${currentPath === '/dashboard' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.dashboard}</span><span>Dashboard</span></span></a>
-          <a href="/cases" class="${currentPath === '/cases' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.cases}</span><span>Cases</span></span></a>
-          <a href="/hearings" class="${currentPath === '/hearings' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.hearings}</span><span>Hearings</span></span></a>
-          <a href="/documents" class="${currentPath === '/documents' ? 'active' : ''}"><span class="nav-link-inner"><span class="nav-icon" aria-hidden="true">${Icons.documents}</span><span>Documents</span></span></a>
+          ${buildNav(currentPath, currentUser.role)}
         </nav>
 
         <div id="notifications-panel" class="notifications-panel" hidden>
@@ -258,8 +315,8 @@ function mountShellControls() {
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      signOut()
+    logoutBtn.addEventListener('click', async () => {
+      await signOut()
       window.location.replace('/login')
     })
   }

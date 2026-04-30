@@ -68,6 +68,10 @@ REQUIRE_MONGO_AUTH=true
 
 # Atlas / hosted MongoDB
 MONGODB_URI=mongodb+srv://portal_user:REPLACE_WITH_STRONG_PASSWORD@cluster0.example.mongodb.net/portal_node_app?retryWrites=true&w=majority
+
+# Optional aliases supported by this app
+# MONGO_URI=<same connection string>
+# DATABASE_URL=<same connection string>
 ```
 
 3. Start the server:
@@ -141,6 +145,24 @@ Render injects `PORT` automatically.
 
 - `GET /health` should return `{ "status": "ok" }`
 - Open `/login`, `/dashboard`, and test `/api/cases`
+
+## Deploy (Vercel + MongoDB Atlas)
+
+Set these environment variables in your Vercel project:
+
+```env
+MONGODB_URI=<your atlas connection string>
+NODE_ENV=production
+REQUIRE_MONGO_AUTH=true
+```
+
+The server also accepts `MONGO_URI` or `DATABASE_URL` if your existing setup already uses those names.
+
+After setting env vars, redeploy and verify:
+
+- `/health`
+- `/api/cases`
+- `/dashboard`
 
 ### Uploads on hosted platforms
 

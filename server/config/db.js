@@ -5,7 +5,7 @@ let cachedConnectionPromise = null
 
 async function connectDB(uri) {
   if (!uri) {
-    throw new Error('MONGODB_URI is not set')
+    throw new Error('MongoDB URI is not set. Configure MONGODB_URI (or MONGO_URI / DATABASE_URL).')
   }
 
   if (cachedConnection) {

@@ -3,34 +3,78 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login</title>
+  <title>Sign In — Judicial Case Management Portal</title>
+  <meta name="description" content="Secure sign-in to the Judicial Case Management Portal for court staff, judges, advocates and citizens." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/public/css/styles.css" />
 </head>
-<body>
+<body class="login-body">
   <main class="login-shell">
-    <section class="login-card">
-      <p class="eyebrow">Court e-Portal</p>
-      <h1>Sign In</h1>
-      <p class="small">Login with your assigned user account to continue.</p>
+    <div class="login-left">
+      <div class="login-brand">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4z"/><path d="M8.5 11.5h7M10.5 9.5 8.5 11.5l2 2M13.5 9.5l2 2-2 2"/></svg>
+        <span>Judicial Portal</span>
+      </div>
+      <div class="login-hero-text">
+        <h1>Court Case<br/>Management System</h1>
+        <p>Secure, unified access for court administrators, judges, registry staff, advocates, and citizens.</p>
+      </div>
+      <ul class="login-features">
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Role-based secure access
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Real-time case tracking
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Encrypted document storage
+        </li>
+        <li>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Hearing schedule management
+        </li>
+      </ul>
+    </div>
 
-      <form id="login-form" class="login-form">
-        <label for="login-email">Email</label>
-        <input id="login-email" name="email" type="email" required autocomplete="username" placeholder="name@court.local" />
+    <div class="login-right">
+      <section class="login-card">
+        <p class="eyebrow">Court e-Portal</p>
+        <h2>Sign In</h2>
+        <p class="login-sub">Enter your credentials to access the portal.</p>
 
-        <label for="login-password">Password</label>
-        <input id="login-password" name="password" type="password" required autocomplete="current-password" placeholder="Enter password" />
+        <form id="login-form" class="login-form" novalidate>
+          <div class="field-group">
+            <label for="login-email">Email Address</label>
+            <input id="login-email" name="email" type="email" required
+              autocomplete="username" placeholder="name@court.local" />
+          </div>
 
-        <button type="submit">Sign In</button>
-      </form>
+          <div class="field-group">
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" required
+              autocomplete="current-password" placeholder="Enter your password" />
+          </div>
 
-      <p id="login-message" class="login-message" role="status" aria-live="polite"></p>
-      <p id="login-error" class="login-error" role="alert"></p>
+          <button id="login-submit" type="submit" class="btn-primary full-width">Sign In</button>
+        </form>
 
-      <section class="demo-users" aria-label="Demo users">
-        <h2>Demo Users</h2>
-        <div id="demo-users-list" class="demo-users-list"></div>
+        <p id="login-message" class="login-message" role="status" aria-live="polite"></p>
+        <p id="login-error" class="login-error" role="alert"></p>
+
+        <div class="login-divider"><span>Quick Demo Access</span></div>
+
+        <div id="demo-users-list" class="demo-pills"></div>
+
+        <p class="login-register-link">
+          New citizen or advocate?
+          <a href="/register">Create an account</a>
+        </p>
       </section>
-    </section>
+    </div>
   </main>
 
   <script type="module" src="/public/js/login.js"></script>

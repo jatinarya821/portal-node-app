@@ -1,67 +1,71 @@
 import {
-  getPostLoginDestination,
-  listDemoUsers,
   redirectIfAuthenticated,
   signIn,
+  getPostLoginDestination,
 } from '/public/js/auth-client.js'
 
-if (!redirectIfAuthenticated('/dashboard')) {
+async function init() {
+  // If already logged in, go straight to dashboard
+  const redirected = await redirectIfAuthenticated()
+  if (redirected) return
+
   const form = document.getElementById('login-form')
   const emailInput = document.getElementById('login-email')
   const passwordInput = document.getElementById('login-password')
-  const messageEl = document.getElementById('login-message')
+  const submitBtn = document.getElementById('login-submit')
   const errorEl = document.getElementById('login-error')
+  const successEl = document.getElementById('login-message')
+
+  // Populate demo credential pills
   const demoList = document.getElementById('demo-users-list')
+  const DEMOS = [
+    { label: 'Admin', email: 'admin@court.local', password: 'Admin@1234', role: 'Chief Registrar' },
+    { label: 'Judge', email: 'judge@court.local', password: 'Judge@1234', role: 'District Judge' },
+    { label: 'Clerk', email: 'clerk@court.local', password: 'Clerk@1234', role: 'Registry Clerk' },
+    { label: 'Advocate', email: 'lawyer@court.local', password: 'Lawyer@1234', role: 'Advocate' },
+    { label: 'Citizen', email: 'citizen@court.local', password: 'Citizen@1234', role: 'Citizen' },
+  ]
 
-  function renderDemoUsers() {
-    if (!demoList) return
+  if (demoList) {
+    demoList.innerHTML = DEMOS.map((u) => `
+      <button type="button" class="demo-pill" data-email="${u.email}" data-pw="${u.password}">
+        <span class="demo-pill-label">${u.label}</span>
+        <span class="demo-pill-role">${u.role}</span>
+      </button>
+    `).join('')
 
-    demoList.innerHTML = listDemoUsers()
-      .map((user) => `
-        <article class="demo-user-item">
-          <div>
-            <h3>${user.fullName}</h3>
-            <p>${user.role}</p>
-            <small>${user.email}</small>
-            <small>Password: ${user.password}</small>
-          </div>
-          <button type="button" data-email="${user.email}" data-password="${user.password}">Use</button>
-        </article>
-      `)
-      .join('')
-
-    demoList.addEventListener('click', (event) => {
-      const target = event.target
-      if (!(target instanceof HTMLElement) || target.tagName !== 'BUTTON') return
-
-      emailInput.value = target.dataset.email || ''
-      passwordInput.value = target.dataset.password || ''
-      emailInput.focus()
+    demoList.addEventListener('click', (e) => {
+      const pill = e.target.closest('.demo-pill')
+      if (!pill) return
+      emailInput.value = pill.dataset.email
+      passwordInput.value = pill.dataset.pw
+      errorEl.textContent = ''
     })
   }
 
-  renderDemoUsers()
-
   if (form) {
-    form.addEventListener('submit', (event) => {
-      event.preventDefault()
-      messageEl.textContent = ''
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
       errorEl.textContent = ''
+      successEl.textContent = ''
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Signing in…'
 
       try {
-        signIn({
+        const user = await signIn({
           email: emailInput.value,
           password: passwordInput.value,
         })
-
-        messageEl.textContent = 'Login successful. Redirecting...'
-        const destination = getPostLoginDestination('/dashboard')
-        window.setTimeout(() => {
-          window.location.replace(destination)
-        }, 350)
-      } catch (error) {
-        errorEl.textContent = error.message || 'Login failed'
+        successEl.textContent = `Welcome, ${user.fullName}! Redirecting…`
+        const dest = getPostLoginDestination(user)
+        setTimeout(() => window.location.replace(dest), 400)
+      } catch (err) {
+        errorEl.textContent = err.message || 'Login failed'
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Sign In'
       }
     })
   }
 }
+
+init()
