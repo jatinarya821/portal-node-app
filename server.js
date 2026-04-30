@@ -38,9 +38,12 @@ async function ensureDbConnected(req, res, next) {
   }
 }
 
+// ─── Trust proxy (required for Vercel / Render / any reverse proxy) ──────
+app.set('trust proxy', 1)
+
 // ─── Core Middleware ──────────────────────────────────────────────────────
 app.use(morgan('dev'))
-app.use(cors())
+app.use(cors({ origin: true, credentials: true }))
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
@@ -54,6 +57,7 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 8 * 60 * 60 * 1000, // 8 hours
     },
     store: MongoStore.create({

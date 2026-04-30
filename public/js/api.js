@@ -18,13 +18,14 @@ async function parseResponse(response) {
 
 export const api = {
   async get(path) {
-    const res = await fetch(`/api${path}`)
+    const res = await fetch(`/api${path}`, { credentials: 'include' })
     return parseResponse(res)
   },
 
   async post(path, body) {
     const res = await fetch(`/api${path}`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
@@ -34,8 +35,10 @@ export const api = {
   async upload(path, formData) {
     const res = await fetch(`/api${path}`, {
       method: 'POST',
+      credentials: 'include',
       body: formData,
     })
     return parseResponse(res)
   },
 }
+
