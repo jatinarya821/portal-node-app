@@ -384,6 +384,7 @@ router.get('/documents/:id/file', wrap(async (req, res) => {
 // USER ADMIN ROUTES — Admin only
 // ══════════════════════════════════════════════════════════════════════════
 const User = require('../models/User')
+const DeletedUser = require('../models/DeletedUser')
 const { requireRole } = require('../middleware/auth')
 
 // List all users (admin only)
@@ -392,6 +393,45 @@ router.get('/users', requireRole('admin'), wrap(async (req, res) => {
     .select('-passwordHash')
     .sort({ createdAt: -1 })
   res.json({ items: users })
+}))
+
+// List archived/deleted users (admin only)
+router.get('/users/deleted', requireRole('admin'), wrap(async (req, res) => {
+  const items = await DeletedUser.find({}).sort({ deletedAt: -1 })
+  res.json({ items })
+}))
+
+// Restore a deleted user back to active Users (admin only)
+router.post('/users/restore/:id', requireRole('admin'), wrap(async (req, res) => {
+  const archived = await DeletedUser.findById(req.params.id)
+  if (!archived) return res.status(404).json({ message: 'Archived user not found' })
+
+  // Check if email is already taken (someone may have re-registered with same email)
+  const existing = await User.findOne({ email: archived.email })
+  if (existing) {
+    return res.status(409).json({
+      message: `Cannot restore — email ${archived.email} is already registered to another active account`,
+    })
+  }
+
+  // Restore user back to Users collection with original data
+  const restored = await User.create({
+    _id:          archived.originalId, // restore with original ID so submittedBy links work
+    fullName:     archived.fullName,
+    email:        archived.email,
+    passwordHash: archived.passwordHash, // original password restored — they can login
+    role:         archived.role,
+    barNumber:    archived.barNumber,
+    isActive:     true, // always restore as active
+  })
+
+  // Remove from archive
+  await DeletedUser.findByIdAndDelete(req.params.id)
+
+  res.json({
+    message: `${archived.fullName} has been restored and can now log in`,
+    item: { _id: restored._id, email: restored.email, role: restored.role },
+  })
 }))
 
 // Update user role or status (admin only)
@@ -418,15 +458,40 @@ router.patch('/users/:id', requireRole('admin'), wrap(async (req, res) => {
   res.json({ item: user })
 }))
 
-// Delete user (admin only — hard delete)
+// Delete user — archives to DeletedUsers before removing (admin only)
 router.delete('/users/:id', requireRole('admin'), wrap(async (req, res) => {
   if (String(req.params.id) === String(req.session.userId)) {
     return res.status(403).json({ message: 'You cannot delete your own account' })
   }
-  const user = await User.findByIdAndDelete(req.params.id)
+
+  const user = await User.findById(req.params.id)
   if (!user) return res.status(404).json({ message: 'User not found' })
-  res.json({ message: 'User deleted successfully' })
+
+  // Count how many cases they submitted
+  const caseCount = await Case.countDocuments({ submittedBy: user._id })
+
+  // Archive the full user record before deleting
+  await DeletedUser.create({
+    originalId:   user._id,
+    fullName:     user.fullName,
+    email:        user.email,
+    role:         user.role,
+    barNumber:    user.barNumber,
+    isActive:     user.isActive,
+    passwordHash: user.passwordHash,
+    deletedBy:    req.session.userId,
+    deletedAt:    new Date(),
+    reason:       req.body.reason || 'Deleted by administrator',
+    caseCount,
+  })
+
+  // Now remove from active users
+  await User.findByIdAndDelete(req.params.id)
+
+  res.json({
+    message: 'User archived and removed successfully',
+    archived: { email: user.email, caseCount },
+  })
 }))
 
 module.exports = router
-

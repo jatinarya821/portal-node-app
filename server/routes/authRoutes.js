@@ -39,10 +39,29 @@ router.post(
 
     const { email, password } = req.body
     const user = await User.findOne({ email })
-    if (!user || !user.isActive) {
+
+    // Case 1: User not found in active users — check if they were deleted/archived
+    if (!user) {
+      const DeletedUser = require('../models/DeletedUser')
+      const archived = await DeletedUser.findOne({ email })
+      if (archived) {
+        return res.status(403).json({
+          message: 'Your account has been removed by an administrator. Please contact the court registry for assistance.',
+          reason: 'account_deleted',
+        })
+      }
       return res.status(401).json({ message: 'Invalid email or password' })
     }
 
+    // Case 2: User exists but account is suspended
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: 'Your account has been suspended. Please contact the administrator to reactivate your access.',
+        reason: 'account_suspended',
+      })
+    }
+
+    // Case 3: Wrong password
     const valid = await user.verifyPassword(password)
     if (!valid) {
       return res.status(401).json({ message: 'Invalid email or password' })

@@ -2420,4 +2420,79 @@ button.secondary {
   border-color: color-mix(in srgb, var(--line) 60%, var(--ink));
 }
 
+.admin-tabs {
+  display: flex; gap: 0.5rem;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0;
+}
+.admin-tab {
+  padding: 0.55rem 1.1rem;
+  border: none; background: none; cursor: pointer;
+  font-size: 0.93rem; font-weight: 600; color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
+  transition: color 140ms, border-color 140ms, background 140ms;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.admin-tab:hover { color: var(--ink); background: var(--chip-bg); }
+.admin-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+.admin-tab-count {
+  font-size: 0.72rem; font-weight: 700;
+  background: var(--chip-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  color: var(--muted);
+}
+.admin-tab.active .admin-tab-count { background: color-mix(in srgb, var(--brand) 12%, var(--paper)); color: var(--brand); border-color: color-mix(in srgb, var(--brand) 30%, var(--line)); }
+
+/* ══════════════════════════════════════════════════
+   GLOBAL MODALS
+   ══════════════════════════════════════════════════ */
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 9999;
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 140ms ease;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal-box {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1.5rem 1.8rem;
+  max-width: 440px; width: 92%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  animation: slideUp 180ms ease;
+}
+.modal-box h3 { margin: 0 0 0.35rem; font-size: 1.15rem; }
+
+.modal-actions {
+  display: flex; gap: 0.6rem;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+.modal-actions button {
+  padding: 0.55rem 1.2rem;
+  border-radius: 10px;
+  font-weight: 600; font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 100ms, opacity 100ms;
+}
+.modal-actions button:hover { transform: scale(1.03); }
+.modal-actions button:active { transform: scale(0.97); }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
 
