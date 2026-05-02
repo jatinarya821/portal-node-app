@@ -102,9 +102,15 @@ router.get('/cases', wrap(async (req, res) => {
   const query = {}
 
   // ── Role-based data scoping ──────────────────────────────────────────
-  if (sessionRole === 'citizen' || sessionRole === 'advocate') {
-    // Only see cases they submitted
+  if (sessionRole === 'citizen') {
+    // Citizens only see cases they submitted
     query.submittedBy = sessionUserId
+  } else if (sessionRole === 'advocate') {
+    // Advocates see cases they submitted OR where they are the assigned advocate
+    query.$or = [
+      { submittedBy: sessionUserId },
+      { advocate: sessionUserId },
+    ]
   } else if (sessionRole === 'judge') {
     // Only see cases assigned to them
     if (req.session.userFullName) {
@@ -156,9 +162,48 @@ router.get('/cases', wrap(async (req, res) => {
 }))
 
 router.post('/cases', wrap(async (req, res) => {
-  const { title, type, status, priority, court, judge, petitioner, respondent, summary } = req.body
+  const { title, type, petitioner, respondent, summary, advocateEmail } = req.body
+  let { status, priority, court, judge } = req.body
   if (!title || !type) {
     return res.status(400).json({ message: 'title and type are required' })
+  }
+
+  const role = req.session && req.session.userRole
+  const userId = req.session && req.session.userId
+
+  // ── Citizens/Advocates: strip admin-only fields ──────────────────────
+  if (role === 'citizen' || role === 'advocate') {
+    court = undefined
+    judge = undefined
+    status = undefined
+  }
+
+  // ── Advocate linking ──────────────────────────────────────────
+  let advocateId = null
+  let advocateName = ''
+
+  if (advocateEmail && advocateEmail.trim()) {
+    const advocateUser = await User.findOne({ email: advocateEmail.trim().toLowerCase() })
+    if (!advocateUser) {
+      return res.status(400).json({ message: `No registered user found with email: ${advocateEmail}` })
+    }
+    if (advocateUser.role !== 'advocate') {
+      return res.status(400).json({ message: `${advocateEmail} is not registered as an advocate` })
+    }
+    if (String(advocateUser._id) === String(userId)) {
+      return res.status(400).json({ message: 'You cannot assign yourself as the advocate' })
+    }
+    if (!advocateUser.isActive) {
+      return res.status(400).json({ message: 'This advocate\'s account is currently suspended' })
+    }
+    advocateId = advocateUser._id
+    advocateName = advocateUser.fullName
+  }
+
+  // If an advocate is filing, they are automatically the case advocate
+  if (role === 'advocate' && !advocateId) {
+    advocateId = userId
+    advocateName = req.session.userFullName || ''
   }
 
   const caseNumber = await generateCaseNumber()
@@ -173,7 +218,9 @@ router.post('/cases', wrap(async (req, res) => {
     petitioner: petitioner || '',
     respondent: respondent || '',
     summary: summary || '',
-    submittedBy: req.session && req.session.userId ? req.session.userId : null,
+    submittedBy: userId || null,
+    advocate: advocateId,
+    advocateName,
   })
 
   await createRegistrationDocumentForCase(item)

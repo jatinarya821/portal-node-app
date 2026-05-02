@@ -126,6 +126,9 @@ app.get('/citizen/submit', requireAuth, requireRole('citizen', 'advocate', 'admi
 app.get('/citizen/my-cases', requireAuth, requireRole('citizen', 'advocate', 'admin'), (req, res) => {
   res.sendFile(path.join(pagesDir, 'citizen-my-cases.html'))
 })
+app.get('/citizen/documents', requireAuth, requireRole('advocate', 'admin'), (req, res) => {
+  res.sendFile(path.join(pagesDir, 'citizen-documents.html'))
+})
 
 // Admin portal
 app.get('/admin/users', requireAuth, requireRole('admin'), (req, res) => {

@@ -105,6 +105,17 @@ router.post(
 
     const { fullName, email, password, role = 'citizen', barNumber = '' } = req.body
 
+    // ── Full name: must be letters and spaces only (no numbers or special chars) ──
+    if (/\d/.test(fullName)) {
+      return res.status(400).json({ message: 'Full name must not contain numbers' })
+    }
+    if (!/^[A-Za-z\s.]+$/.test(fullName)) {
+      return res.status(400).json({ message: 'Full name must contain only letters, spaces, and dots' })
+    }
+    if (fullName.trim().length < 2) {
+      return res.status(400).json({ message: 'Full name must be at least 2 characters' })
+    }
+
     const existing = await User.findOne({ email })
     if (existing) {
       return res.status(409).json({ message: 'An account with this email already exists' })

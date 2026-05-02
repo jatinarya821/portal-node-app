@@ -30,11 +30,51 @@ async function init() {
       submitBtn.disabled = true
       submitBtn.textContent = 'Creating account…'
 
+      const fullName = document.getElementById('reg-name').value.trim()
+      const email = document.getElementById('reg-email').value.trim()
+      const password = document.getElementById('reg-password').value
+
+      // ── Name validation: only letters and spaces ──
+      if (!/^[A-Za-z\s.]+$/.test(fullName)) {
+        alert('Full name must contain only letters and spaces. Numbers and special characters are not allowed.')
+        errorEl.textContent = 'Please enter a valid name (letters and spaces only).'
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Account'
+        return
+      }
+
+      if (fullName.length < 2) {
+        alert('Name must be at least 2 characters long.')
+        errorEl.textContent = 'Name is too short.'
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Account'
+        return
+      }
+
+      // ── Email validation: must be valid format ──
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+      if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address (e.g. yourname@example.com).')
+        errorEl.textContent = 'Invalid email format.'
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Account'
+        return
+      }
+
+      // ── Password validation ──
+      if (password.length < 8) {
+        alert('Password must be at least 8 characters long.')
+        errorEl.textContent = 'Password too short (minimum 8 characters).'
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Account'
+        return
+      }
+
       try {
         const user = await register({
-          fullName: document.getElementById('reg-name').value,
-          email: document.getElementById('reg-email').value,
-          password: document.getElementById('reg-password').value,
+          fullName,
+          email,
+          password,
           role: roleSelect.value,
           barNumber: document.getElementById('reg-bar')?.value || '',
         })

@@ -66,6 +66,10 @@ function markup(cases) {
                     <span class="citizen-meta-label">Judge</span>
                     <span>${c.judge}</span>
                   </div>
+                  ${c.advocateName ? `<div class="citizen-case-meta-item">
+                    <span class="citizen-meta-label">Advocate</span>
+                    <span>${c.advocateName}</span>
+                  </div>` : ''}
                   <div class="citizen-case-meta-item">
                     <span class="citizen-meta-label">Filed On</span>
                     <span>${dateLabel(c.createdAt)}</span>

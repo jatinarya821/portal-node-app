@@ -38,11 +38,20 @@ function navLink(href, icon, label, currentPath) {
 }
 
 function buildNav(currentPath, role) {
-  if (role === 'citizen' || role === 'advocate') {
+  if (role === 'citizen') {
     return [
       navLink('/citizen/dashboard', Icons.home,      'My Dashboard', currentPath),
       navLink('/citizen/my-cases',  Icons.cases,     'My Cases',     currentPath),
       navLink('/citizen/submit',    Icons.submit,    'Submit Case',  currentPath),
+    ].join('')
+  }
+
+  if (role === 'advocate') {
+    return [
+      navLink('/citizen/dashboard', Icons.home,      'My Dashboard', currentPath),
+      navLink('/citizen/my-cases',  Icons.cases,     'My Cases',     currentPath),
+      navLink('/citizen/submit',    Icons.submit,    'Submit Case',  currentPath),
+      navLink('/citizen/documents', Icons.documents, 'Documents',    currentPath),
     ].join('')
   }
 

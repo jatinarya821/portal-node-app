@@ -50,17 +50,23 @@ function markup() {
           </div>
 
           <div class="citizen-form-section">
-            <h4 class="citizen-form-section-title">Preferred Court</h4>
+            <h4 class="citizen-form-section-title">Your Advocate (Optional)</h4>
             <div class="citizen-field-row">
               <div class="field-group">
-                <label for="cf-court">Courtroom</label>
-                <select id="cf-court">
-                  <option value="Courtroom 1">Courtroom 1</option>
-                  <option value="Courtroom 2">Courtroom 2</option>
-                  <option value="Courtroom 3">Courtroom 3</option>
-                  <option value="Courtroom 4">Courtroom 4</option>
-                </select>
+                <label for="cf-advocate-email">Advocate's Registered Email</label>
+                <input id="cf-advocate-email" type="email" placeholder="e.g. advocate@example.com" />
+                <span class="field-hint">If you have a lawyer, enter their registered email to give them access to this case.</span>
+                <p id="cf-advocate-status" class="small" style="margin-top:0.3rem"></p>
               </div>
+              <div class="field-group">
+                <p class="field-hint" style="margin-top:1.6rem">Leave blank if you are representing yourself (party-in-person).</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="citizen-form-section">
+            <h4 class="citizen-form-section-title">Filing Options</h4>
+            <div class="citizen-field-row">
               <div class="field-group">
                 <label for="cf-priority">Priority</label>
                 <select id="cf-priority">
@@ -69,6 +75,9 @@ function markup() {
                   <option value="High">High</option>
                   <option value="Urgent">Urgent</option>
                 </select>
+              </div>
+              <div class="field-group">
+                <p class="field-hint" style="margin-top:1.6rem">Courtroom and judge will be assigned by the court registry after review.</p>
               </div>
             </div>
           </div>
@@ -132,8 +141,8 @@ async function init() {
         petitioner: document.getElementById('cf-petitioner').value.trim(),
         respondent: document.getElementById('cf-respondent').value.trim(),
         summary: document.getElementById('cf-summary').value.trim(),
-        court: document.getElementById('cf-court').value,
         priority: document.getElementById('cf-priority').value,
+        advocateEmail: document.getElementById('cf-advocate-email').value.trim(),
       })
 
       document.getElementById('modal-case-number').textContent = item.caseNumber
