@@ -54,7 +54,7 @@ function markup() {
             <div class="citizen-field-row">
               <div class="field-group">
                 <label for="cf-advocate-email">Advocate's Registered Email</label>
-                <input id="cf-advocate-email" type="email" placeholder="e.g. advocate@example.com" />
+                <input id="cf-advocate-email" type="email" placeholder="e.g. advocate@gmail.com" />
                 <span class="field-hint">If you have a lawyer, enter their registered email to give them access to this case.</span>
                 <p id="cf-advocate-status" class="small" style="margin-top:0.3rem"></p>
               </div>

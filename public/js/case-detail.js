@@ -1,11 +1,13 @@
 import { api } from '/public/js/api.js'
 import { byId, closeModal, openModal, renderApp, setupTabs, toast } from '/public/js/utils.js'
+import { getCurrentUser } from '/public/js/auth-client.js'
 
 const params = new URLSearchParams(window.location.search)
 const caseId = params.get('id')
 let detail = null
 let hearings = []
 let documents = []
+let judges = []
 
 function getDownloadUrl(documentItem) {
   const url = String(documentItem?.fileUrl || '')
@@ -19,6 +21,54 @@ function infoPane() {
     return '<div class="card"><p>Case not found.</p></div>'
   }
 
+  const user = getCurrentUser()
+  const role = user?.role || ''
+  const isJudge = role === 'judge'
+  const isStaff = role === 'clerk' || role === 'admin'
+
+  // Judge actions: update status
+  const judgeActions = isJudge ? `
+    <div class="card" style="margin-top:0.8rem;border-left:3px solid #0369a1;padding:1rem">
+      <h4 style="margin-bottom:0.6rem">Judge Actions</h4>
+      <div class="row" style="gap:0.5rem;flex-wrap:wrap">
+        <select id="judge-status-select" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid var(--border)">
+          <option value="">Change Status…</option>
+          <option value="Under Review" ${detail.status === 'Under Review' ? 'selected' : ''}>Under Review</option>
+          <option value="Hearing Scheduled" ${detail.status === 'Hearing Scheduled' ? 'selected' : ''}>Hearing Scheduled</option>
+          <option value="Adjourned" ${detail.status === 'Adjourned' ? 'selected' : ''}>Adjourned</option>
+          <option value="Closed" ${detail.status === 'Closed' ? 'selected' : ''}>Closed</option>
+        </select>
+        <button id="judge-update-status-btn" style="padding:0.4rem 1rem;border-radius:8px">Update Status</button>
+      </div>
+    </div>
+  ` : ''
+
+  // Clerk/Admin: assign judge dropdown
+  const assignJudge = isStaff ? `
+    <div class="card" style="margin-top:0.8rem;border-left:3px solid #7c3aed;padding:1rem">
+      <h4 style="margin-bottom:0.6rem">Assign Judge & Courtroom</h4>
+      <div class="row" style="gap:0.5rem;flex-wrap:wrap;align-items:flex-end">
+        <div class="field-group" style="flex:1;min-width:200px">
+          <label for="assign-judge-select" style="font-size:0.8rem">Judge</label>
+          <select id="assign-judge-select" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid var(--border);width:100%">
+            <option value="Not Assigned">Not Assigned</option>
+            ${judges.map(j => `<option value="${j.fullName}" ${detail.judge === j.fullName ? 'selected' : ''}>${j.fullName} — ${j.designation || 'Judge'}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field-group" style="flex:1;min-width:150px">
+          <label for="assign-court-select" style="font-size:0.8rem">Courtroom</label>
+          <select id="assign-court-select" style="padding:0.4rem 0.8rem;border-radius:8px;border:1px solid var(--border);width:100%">
+            <option value="Courtroom 1" ${detail.court === 'Courtroom 1' ? 'selected' : ''}>Courtroom 1</option>
+            <option value="Courtroom 2" ${detail.court === 'Courtroom 2' ? 'selected' : ''}>Courtroom 2</option>
+            <option value="Courtroom 3" ${detail.court === 'Courtroom 3' ? 'selected' : ''}>Courtroom 3</option>
+            <option value="Courtroom 4" ${detail.court === 'Courtroom 4' ? 'selected' : ''}>Courtroom 4</option>
+          </select>
+        </div>
+        <button id="assign-judge-btn" style="padding:0.4rem 1rem;border-radius:8px">Assign</button>
+      </div>
+    </div>
+  ` : ''
+
   return `
     <div class="card">
       <h3>${detail.caseNumber} - ${detail.title}</h3>
@@ -28,8 +78,11 @@ function infoPane() {
       <p><b>Courtroom:</b> ${detail.court}</p>
       <p><b>Petitioner:</b> ${detail.petitioner}</p>
       <p><b>Respondent:</b> ${detail.respondent}</p>
+      ${detail.advocateName ? `<p><b>Advocate:</b> ${detail.advocateName}</p>` : ''}
       <p><b>Summary:</b> ${detail.summary}</p>
     </div>
+    ${judgeActions}
+    ${assignJudge}
   `
 }
 
@@ -123,14 +176,28 @@ function markup() {
 
 async function loadDetail() {
   if (!caseId) return
-  const [caseRes, hearingRes, docRes] = await Promise.all([
+  const user = getCurrentUser()
+  const role = user?.role || ''
+  const isStaff = role === 'clerk' || role === 'admin'
+
+  const requests = [
     api.get(`/cases/${caseId}`),
     api.get(`/hearings?caseId=${caseId}`),
     api.get(`/documents?caseId=${caseId}`),
-  ])
-  detail = caseRes.item
-  hearings = hearingRes.items || []
-  documents = docRes.items || []
+  ]
+
+  // Fetch judges list for clerk/admin assign dropdown
+  if (isStaff) {
+    requests.push(api.get('/users?role=judge'))
+  }
+
+  const results = await Promise.all(requests)
+  detail = results[0].item
+  hearings = results[1].items || []
+  documents = results[2].items || []
+  if (isStaff && results[3]) {
+    judges = results[3].items || []
+  }
 }
 
 function bindInteractions() {
@@ -158,6 +225,41 @@ function bindInteractions() {
   document.addEventListener('click', async (event) => {
   const target = event.target
   if (!(target instanceof HTMLElement)) return
+
+  // ── Judge: Update case status ──
+  if (target.id === 'judge-update-status-btn') {
+    const newStatus = byId('judge-status-select')?.value
+    if (!newStatus) { toast('Select a status first'); return }
+    try {
+      await api.patch(`/cases/${caseId}`, { status: newStatus })
+      toast(`Status updated to: ${newStatus}`)
+      await init()
+    } catch (error) {
+      toast(`Failed: ${error.message}`)
+    }
+    return
+  }
+
+  // ── Clerk/Admin: Assign judge + courtroom ──
+  if (target.id === 'assign-judge-btn') {
+    const judge = byId('assign-judge-select')?.value
+    const court = byId('assign-court-select')?.value
+    try {
+      const updates = {}
+      if (judge) updates.judge = judge
+      if (court) updates.court = court
+      // If assigning a judge, move from Filed to Under Review
+      if (judge && judge !== 'Not Assigned' && detail.status === 'Filed') {
+        updates.status = 'Under Review'
+      }
+      await api.patch(`/cases/${caseId}`, updates)
+      toast(`Judge assigned: ${judge}`)
+      await init()
+    } catch (error) {
+      toast(`Failed: ${error.message}`)
+    }
+    return
+  }
 
   if (target.id === 'open-hearing-modal') openModal('hearing-modal')
   if (target.id === 'close-hearing-modal') closeModal('hearing-modal')

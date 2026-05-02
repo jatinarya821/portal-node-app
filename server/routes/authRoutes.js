@@ -105,6 +105,13 @@ router.post(
 
     const { fullName, email, password, role = 'citizen', barNumber = '' } = req.body
 
+    // ── Only citizen and advocate can self-register ──
+    // Judge, clerk, and admin accounts must be created by an admin
+    const allowedSelfRegisterRoles = ['citizen', 'advocate']
+    if (!allowedSelfRegisterRoles.includes(role)) {
+      return res.status(403).json({ message: 'Only citizen and advocate accounts can be registered. Contact court administration for staff accounts.' })
+    }
+
     // ── Full name: must be letters and spaces only (no numbers or special chars) ──
     if (/\d/.test(fullName)) {
       return res.status(400).json({ message: 'Full name must not contain numbers' })

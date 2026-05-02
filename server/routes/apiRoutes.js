@@ -234,7 +234,7 @@ router.get('/cases/:id', wrap(async (req, res) => {
   res.json({ item })
 }))
 
-// ── Edit case (clerk/admin: all fields; citizen/advocate: only if Filed) ──
+// ── Edit case (clerk/admin: all fields; judge: status/priority; citizen/advocate: limited) ──
 router.patch('/cases/:id', wrap(async (req, res) => {
   const role = req.session && req.session.userRole
   const userId = req.session && req.session.userId
@@ -249,13 +249,24 @@ router.patch('/cases/:id', wrap(async (req, res) => {
     if (item.status !== 'Filed') {
       return res.status(403).json({ message: 'Case can only be edited while status is Filed' })
     }
-    // Citizens can only update limited fields
     const { title, petitioner, respondent, summary } = req.body
     Object.assign(item, { title, petitioner, respondent, summary })
+  } else if (role === 'judge') {
+    // Judges can update status and priority on cases assigned to them
+    if (item.judge !== req.session.userFullName) {
+      return res.status(403).json({ message: 'You can only update cases assigned to you' })
+    }
+    const { status, priority } = req.body
+    if (status) item.status = status
+    if (priority) item.priority = priority
   } else if (role === 'clerk' || role === 'admin') {
-    // Clerks/admins can update any field
-    const { title, type, status, priority, court, judge, petitioner, respondent, summary } = req.body
-    Object.assign(item, { title, type, status, priority, court, judge, petitioner, respondent, summary })
+    // Clerks/admins can update any field — only apply fields that are provided
+    const allowed = ['title', 'type', 'status', 'priority', 'court', 'judge', 'petitioner', 'respondent', 'summary']
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        item[key] = req.body[key]
+      }
+    }
   } else {
     return res.status(403).json({ message: 'Not authorized to edit cases' })
   }
@@ -302,12 +313,24 @@ router.get('/hearings', wrap(async (req, res) => {
 
 router.post('/hearings', wrap(async (req, res) => {
   const { caseId, date, time, status, courtroom } = req.body
+  const role = req.session && req.session.userRole
+
   if (!caseId || !date || !time) {
     return res.status(400).json({ message: 'caseId, date, and time are required' })
   }
 
+  // Only clerk, admin, and judge can schedule hearings
+  if (!['clerk', 'admin', 'judge'].includes(role)) {
+    return res.status(403).json({ message: 'Not authorized to schedule hearings' })
+  }
+
   const found = await Case.findById(caseId)
   if (!found) return res.status(404).json({ message: 'Linked case not found' })
+
+  // Judges can only schedule hearings for cases assigned to them
+  if (role === 'judge' && found.judge !== req.session.userFullName) {
+    return res.status(403).json({ message: 'You can only schedule hearings for cases assigned to you' })
+  }
 
   const item = await Hearing.create({
     caseId,
@@ -434,12 +457,36 @@ const User = require('../models/User')
 const DeletedUser = require('../models/DeletedUser')
 const { requireRole } = require('../middleware/auth')
 
-// List all users (admin only)
-router.get('/users', requireRole('admin'), wrap(async (req, res) => {
-  const users = await User.find({})
-    .select('-passwordHash')
-    .sort({ createdAt: -1 })
-  res.json({ items: users })
+// List users — admin sees all; clerk/judge can filter by role for dropdowns
+router.get('/users', wrap(async (req, res) => {
+  const sessionRole = req.session && req.session.userRole
+
+  // Admin: full user list (no filter required)
+  if (sessionRole === 'admin') {
+    if (req.query.role) {
+      const items = await User.find({ role: req.query.role, isActive: true })
+        .select('-passwordHash')
+        .sort({ fullName: 1 })
+      return res.json({ items })
+    }
+    const items = await User.find({})
+      .select('-passwordHash')
+      .sort({ createdAt: -1 })
+    return res.json({ items })
+  }
+
+  // Clerk/Judge: can only fetch filtered by role (for dropdowns)
+  if (sessionRole === 'clerk' || sessionRole === 'judge') {
+    if (!req.query.role) {
+      return res.status(400).json({ message: 'Role filter is required' })
+    }
+    const items = await User.find({ role: req.query.role, isActive: true })
+      .select('fullName email role designation courtId barNumber')
+      .sort({ fullName: 1 })
+    return res.json({ items })
+  }
+
+  return res.status(403).json({ message: 'Not authorized' })
 }))
 
 // List archived/deleted users (admin only)
